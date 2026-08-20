@@ -1,29 +1,16 @@
-import time
-import sqlalchemy
-from app import create_app, db
+from app import create_app
+from app.db_setup import prepare_schema, wait_for_db
 
 app = create_app()
 
-def wait_for_db(retries=15, delay=2):
-    for i in range(retries):
-        try:
-            with app.app_context():
-                db.engine.connect().close()
-            return True
-        except sqlalchemy.exc.OperationalError:
-            print(f'PostgreSQL no disponible aun, reintentando ({i+1}/{retries})...')
-            time.sleep(delay)
-    return False
-
 if __name__ == '__main__':
     print('Esperando conexion a PostgreSQL...')
-    if not wait_for_db():
+    if not wait_for_db(app):
         print('ERROR: No se pudo conectar a PostgreSQL. Verifica que el contenedor este corriendo.')
-        exit(1)
+        raise SystemExit(1)
 
-    with app.app_context():
-        db.create_all()
-        print('Base de datos inicializada correctamente.')
+    prepare_schema(app)
+    print('Base de datos lista.')
 
     debug = app.config['DEBUG']
     if debug:

@@ -18,7 +18,15 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
-    upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), app.config['UPLOAD_FOLDER'])
+    # UPLOAD_FOLDER absoluto (p. ej. un volumen de Railway montado en /data/uploads)
+    # se usa tal cual; relativo se ancla a la carpeta backend/. En Railway el disco
+    # del contenedor es efímero: sin un volumen apuntado aquí, las fotos se borran
+    # en cada deploy.
+    upload_folder = app.config['UPLOAD_FOLDER']
+    if os.path.isabs(upload_folder):
+        upload_dir = upload_folder
+    else:
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), upload_folder)
     os.makedirs(upload_dir, exist_ok=True)
     app.config['UPLOAD_FOLDER_ABS'] = upload_dir
 

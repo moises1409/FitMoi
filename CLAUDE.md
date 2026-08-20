@@ -43,17 +43,42 @@ En Windows hay scripts: `.\start-backend.ps1` y `.\start-frontend.ps1`.
 `.env` **no está en el repo** (lleva la clave real). Copia `.env.example` y
 rellénalo; sin `ANTHROPIC_API_KEY` el análisis de comida no funciona.
 
-## Migraciones
+## Migraciones y arranque del esquema
 
-Las migraciones SQL están en `backend/migrations/`, numeradas, y **se aplican a
-mano** — `db.create_all()` crea tablas nuevas pero no altera las existentes:
+`backend/app/db_setup.py::prepare_schema()` se ejecuta al arrancar (lo llaman
+`run.py` en dev y `wsgi.py` en producción) y prepara el esquema solo:
 
-```bash
-docker exec -i fitmoi_db psql -U fitmoi -d fitmoi < backend/migrations/00X_*.sql
-```
+- `db.create_all()` construye el esquema COMPLETO en una BD nueva — **los modelos
+  son la fuente de verdad** y ya reflejan todas las columnas, tipos, índices y
+  uniques que en su día añadieron los `.sql`.
+- `schema_migrations` (tabla) registra qué `.sql` se han aplicado.
+- **Baseline en el primer arranque**: si no hay tabla de registro, los `.sql`
+  presentes se marcan como aplicados SIN ejecutarlos (create_all ya dejó el
+  esquema al día). Esto evita re-ejecutar la 001 —cambio de tipo con `USING`—
+  que sobre datos reales desplazaría las fechas.
+- Los `.sql` que se añadan después (008+) se ejecutan una vez y se registran.
+- Un advisory lock de Postgres serializa todo esto entre los workers de gunicorn.
 
-`backend/scripts/backfill_library.py` reconstruye la biblioteca desde los
-registros existentes (idempotente).
+Para un cambio de esquema en una BD ya desplegada: cambia el modelo Y añade un
+`backend/migrations/00N_*.sql` idempotente (`... IF NOT EXISTS`) con su
+`BEGIN/COMMIT`; `create_all` cubre las tablas nuevas, el `.sql` cubre los
+`ALTER` sobre tablas existentes. `backend/scripts/backfill_library.py`
+reconstruye la biblioteca desde los registros (idempotente).
+
+## Despliegue (Railway)
+
+- Producción sirve con **gunicorn** vía `Procfile` → `wsgi:app` (no `run.py`, que
+  es el servidor de desarrollo). `wsgi.py` espera la BD, prepara el esquema y
+  expone `app`.
+- **Postgres**: servicio gestionado de Railway; inyecta `DATABASE_URL`.
+- **Variables obligatorias**: `ANTHROPIC_API_KEY`, `APP_ACCESS_TOKEN` (candado),
+  `COOKIE_SECURE=1`, `APP_TIMEZONE`, y `UPLOAD_FOLDER` con la ruta ABSOLUTA de un
+  volumen persistente (p. ej. `/data/uploads`).
+- **Fotos**: el disco del contenedor es efímero — sin un volumen montado y
+  apuntado por `UPLOAD_FOLDER`, las imágenes se borran en cada deploy.
+  `UPLOAD_FOLDER` absoluto se usa tal cual; relativo se ancla a `backend/`.
+- Auto-deploy: cada push a `main` despliega. Por eso el trabajo desde el móvil
+  debería ir en rama → PR → merge cuando se ha verificado (ver más abajo).
 
 ## Estructura
 
