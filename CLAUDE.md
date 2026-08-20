@@ -209,6 +209,43 @@ reconstruye la biblioteca desde los registros (idempotente).
 - `FLASK_DEBUG=0` a propósito: con `host=0.0.0.0` el depurador de Werkzeug sería
   RCE en la LAN.
 
+## Flujo de trabajo (ramas y móvil)
+
+`main` **auto-despliega a producción** (Railway): solo debe entrar en `main`
+código verificado.
+
+**Si trabajas desde una sesión sin entorno local (móvil o nube), NO puedes
+verificar** —no hay Postgres con datos, ni `ANTHROPIC_API_KEY`, ni forma de
+levantar la app o hacer capturas—, así que:
+
+- Trabaja siempre en una **rama**, nunca directamente sobre `main`. Nombres:
+  `movil/<tema>`, `feat/<tema>` o `fix/<tema>`.
+- Commits pequeños y **abre un PR** hacia `main`. **No fundas el PR tú mismo.**
+- En la descripción del PR di qué queda por verificar (build de producción,
+  capturas, prueba con BD/foto reales).
+
+**La verificación y el merge se hacen desde el escritorio**, donde sí hay
+entorno: `git fetch`, `checkout` de la rama, levantar la app, build de
+producción, capturas, `/analyze` con la clave real, y solo entonces `merge` a
+`main` (que dispara el deploy).
+
+```bash
+# móvil / nube: rama sobre main al día → PR
+git checkout main && git pull
+git checkout -b movil/ajuste-perfil
+# ...cambios...  →  commit  →  push  →  abrir PR (o `gh pr create`)
+git push -u origin movil/ajuste-perfil
+
+# escritorio: verificar y fundir
+git fetch origin && git checkout movil/ajuste-perfil
+# levantar + build de producción + capturas + probar con BD real
+git checkout main && git merge --no-ff movil/ajuste-perfil && git push
+```
+
+Recomendado en GitHub: **proteger `main`** (Settings → Branches → require pull
+request) para que ni un push accidental desde el móvil llegue directo a
+producción.
+
 ## Pendiente
 
 - **Integración con Whoop** (fases 0–5): bloqueada hasta tener cuenta de
