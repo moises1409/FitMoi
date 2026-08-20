@@ -1,9 +1,10 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { AuthService } from '../services/auth.service';
 import { ProfileService } from '../services/profile.service';
 import { ThemeToggleComponent } from '../shared/theme-toggle.component';
 import {
@@ -35,8 +36,12 @@ type ListField = 'sports' | 'goals' | 'conditions' | 'injuries_current' | 'injur
 export class ProfileViewComponent implements OnInit {
   private profiles = inject(ProfileService);
   private snack = inject(MatSnackBar);
+  private auth = inject(AuthService);
+  private router = inject(Router);
 
   readonly profile = this.profiles.profile;
+  /** Solo se ofrece cerrar sesión si el candado está activo. */
+  readonly authRequired = this.auth.required;
   loading = signal(true);
   editing = signal(false);
   saving = signal(false);
@@ -151,6 +156,13 @@ export class ProfileViewComponent implements OnInit {
         this.loading.set(false);
         this.snack.open('No se pudo cargar tu perfil', 'OK');
       },
+    });
+  }
+
+  logout(): void {
+    this.auth.logout().subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: () => this.router.navigate(['/login']),
     });
   }
 

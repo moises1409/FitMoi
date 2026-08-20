@@ -11,6 +11,11 @@
       </div>
     </div>
     <app-theme-toggle />
+    @if (authRequired()) {
+      <button class="icon-btn" type="button" (click)="logout()" aria-label="Cerrar sesión" title="Cerrar sesión">
+        <mat-icon>logout</mat-icon>
+      </button>
+    }
   </header>
 
   @if (loading()) {

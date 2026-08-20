@@ -1,6 +1,7 @@
 <div class="app-shell">
   <router-outlet></router-outlet>
 
+  @if (showNav()) {
   <nav class="bottom-nav" aria-label="Navegación principal">
     <a class="nav-item" routerLink="/log" routerLinkActive="active" matRipple>
       <div class="nav-icon-wrap">
@@ -36,4 +37,5 @@
       <span>Perfil</span>
     </a>
   </nav>
+  }
 </div>

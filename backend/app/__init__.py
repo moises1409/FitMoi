@@ -35,6 +35,11 @@ def create_app():
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(activity_bp, url_prefix='/api/activities')
 
+    # Candado de acceso (antes que las rutas queden expuestas). Opt-in por
+    # APP_ACCESS_TOKEN; sin token no hace nada. Ver app/auth.py.
+    from .auth import init_auth
+    init_auth(app)
+
     @app.route('/health')
     def health():
         return {'status': 'ok', 'service': 'fitmoi-api'}

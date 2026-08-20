@@ -112,6 +112,27 @@ registros existentes (idempotente).
   PATCH/DELETE golpea los datos reales del usuario. Usar una copia o revertir en
   transacción; nunca lanzar pruebas destructivas contra la BD viva.
 
+## Autenticación (candado de acceso)
+
+- App de **usuario único**: no hay tabla de usuarios ni contraseñas, solo un
+  **secreto compartido** en `APP_ACCESS_TOKEN`. Vacío = candado DESACTIVADO (dev
+  local sigue abierto sin tocar nada); definido = toda la API exige sesión.
+- **Se valida por COOKIE httponly, no por cabecera** (`backend/app/auth.py`): las
+  fotos se cargan con `<img src="/api/food/uploads/...">` y un `<img>` no puede
+  mandar `Authorization`, pero sí la cookie. Se acepta además `Bearer` en
+  cabecera para curl/scripts. Un `before_request` protege todo `/api/*` salvo
+  `/api/auth/*` y `/health`.
+- Endpoints: `GET /api/auth/status` (¿hace falta candado?, ¿ya autenticado?),
+  `POST /api/auth/login` ({token} → cookie), `POST /api/auth/logout`.
+- **Frontend**: `AuthService` + `authGuard` (protege las rutas, redirige a
+  `/login`) + `authInterceptor` (ante 401 vuelve al login) +
+  `login.component`. El diseño asume **mismo origen** front/back (el dev server
+  proxya `/api`); en producción servir el SPA desde el mismo dominio que la API,
+  o habría que pasar la cookie a `SameSite=None; Secure` + CORS con credenciales.
+- **En producción (Railway) es OBLIGATORIO** poner `APP_ACCESS_TOKEN` y
+  `COOKIE_SECURE=1`: sin candado, cualquiera con la URL gasta la clave de
+  Anthropic vía `/analyze`.
+
 ## Decisiones de diseño (no deducibles del código)
 
 - **La "cesta" multi-alimento se probó y se rechazó por complicada. No

@@ -21,6 +21,12 @@ class Config:
     ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
     ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-sonnet-4-6')
 
+    # Candado de acceso. Vacio = desactivado (desarrollo local). Al definirlo
+    # (produccion/Railway) toda la API exige la cookie de sesion. Ver app/auth.py.
+    APP_ACCESS_TOKEN = os.environ.get('APP_ACCESS_TOKEN', '')
+    # La cookie solo viaja por HTTPS cuando esto es true: ponlo a 1 en produccion.
+    COOKIE_SECURE = _env_bool('COOKIE_SECURE', False)
+
     # Zona horaria del usuario: determina que cuenta como "hoy" en la vista diaria.
     APP_TIMEZONE = os.environ.get('APP_TIMEZONE', 'Europe/Madrid')
 
