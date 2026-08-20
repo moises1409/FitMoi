@@ -1,0 +1,389 @@
+<div class="page">
+
+  <header class="top-bar">
+    <div class="top-bar-icon">
+      <mat-icon>person</mat-icon>
+    </div>
+    <div style="flex:1">
+      <div class="top-bar-title">Mi perfil</div>
+      <div class="top-bar-sub">
+        @if (profile(); as p) { {{ p.completeness }}% completo } @else { Cargando… }
+      </div>
+    </div>
+    <app-theme-toggle />
+  </header>
+
+  @if (loading()) {
+    <div class="loading-wrap">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-item"></div>
+    </div>
+  } @else {
+    @if (profile(); as p) {
+    <div class="content">
+
+      @if (isEmpty()) {
+        <!-- ── Sin perfil todavía ── -->
+        <div class="empty-state">
+          <div class="empty-icon"><mat-icon>fitness_center</mat-icon></div>
+          <h3>Aún no te conozco</h3>
+          <p>
+            Habla unos minutos con tu entrenador y construirá tu perfil: datos,
+            hábitos, objetivos y lesiones. Con eso podrá ajustar tus calorías y
+            recomendaciones a ti.
+          </p>
+          <a class="btn-primary" routerLink="/profile/chat">
+            <mat-icon>forum</mat-icon>
+            Hablar con mi entrenador
+          </a>
+        </div>
+      } @else {
+        <!-- ── Progreso ── -->
+        <div class="progress-card card">
+          <div class="progress-head">
+            <span class="progress-title">Perfil {{ p.completeness }}% completo</span>
+            @if (p.missing.length) {
+              <span class="progress-missing">falta {{ p.missing.length }}</span>
+            }
+          </div>
+          <span class="progress-track">
+            <span class="progress-fill" [style.width.%]="p.completeness"></span>
+          </span>
+          @if (p.missing.length) {
+            <p class="progress-hint">Aún no sé: {{ p.missing.join(' · ') }}</p>
+          }
+          <a class="btn-ghost mt-8" routerLink="/profile/chat">
+            <mat-icon>forum</mat-icon>
+            {{ p.missing.length ? 'Continuar con el entrenador' : 'Hablar con el entrenador' }}
+          </a>
+        </div>
+
+        <!-- ── Peso ── -->
+        @if (weight(); as w) {
+          <div class="weight-card card">
+            <div class="weight-head">
+              <p class="card-title"><mat-icon>monitor_weight</mat-icon> Tu peso</p>
+              @if (!showWeightForm()) {
+                <button class="edit-link" type="button" (click)="openWeightForm()">
+                  <mat-icon>add</mat-icon> Registrar
+                </button>
+              }
+            </div>
+
+            @if (w.due) {
+              <p class="weight-due">
+                <mat-icon>schedule</mat-icon>
+                <span>
+                  @if (w.days_since === null) {
+                    Aún no te has pesado.
+                  } @else {
+                    Han pasado {{ w.days_since }} días desde tu última pesada.
+                  }
+                  Toca volver a pesarse.
+                </span>
+              </p>
+            }
+
+            @if (showWeightForm()) {
+              <div class="weight-form">
+                <input class="field-input" type="number" step="0.1" min="20" max="400"
+                       [(ngModel)]="newWeight" placeholder="kg" aria-label="Peso en kilos">
+                <button class="btn-primary" type="button" (click)="saveWeight()"
+                        [disabled]="savingWeight()">
+                  {{ savingWeight() ? 'Guardando…' : 'Guardar' }}
+                </button>
+                <button class="btn-ghost" type="button" (click)="showWeightForm.set(false)">
+                  Cancelar
+                </button>
+              </div>
+            }
+
+            @if (w.current !== null) {
+              <div class="weight-main">
+                <span class="weight-value">{{ w.current }}<small>kg</small></span>
+                <div class="weight-deltas">
+                  @if (w.change_last !== null) {
+                    <span class="delta" [class.down]="w.change_last < 0" [class.up]="w.change_last > 0">
+                      {{ w.change_last > 0 ? '+' : '' }}{{ w.change_last }} kg
+                      <small>desde la anterior</small>
+                    </span>
+                  }
+                  @if (w.change_total !== null) {
+                    <span class="delta" [class.down]="w.change_total < 0" [class.up]="w.change_total > 0">
+                      {{ w.change_total > 0 ? '+' : '' }}{{ w.change_total }} kg
+                      <small>en total</small>
+                    </span>
+                  }
+                </div>
+              </div>
+
+              @if (showChart()) {
+                <svg class="weight-chart" viewBox="0 0 100 32" preserveAspectRatio="none"
+                     role="img" aria-label="Evolución de tu peso">
+                  <polyline [attr.points]="chartPoints()" />
+                </svg>
+              }
+
+              <div class="weight-list">
+                @for (e of reversedEntries(); track e.id) {
+                  <div class="weight-row">
+                    <span class="wr-date">{{ e.measured_on | date:'d MMM y' }}</span>
+                    <span class="wr-kg">{{ e.weight_kg }} kg</span>
+                    <span class="wr-delta">
+                      @if (deltaOfEntry(e); as d) {
+                        {{ d > 0 ? '+' : '' }}{{ d }}
+                      }
+                    </span>
+                    <button class="wr-del" type="button" (click)="requestWeightDelete(e)"
+                            [attr.aria-label]="'Eliminar pesada del ' + e.measured_on">
+                      <mat-icon>{{ pendingWeightDelete() === e.id ? 'delete_forever' : 'close' }}</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <p class="weight-next">
+                Se registra cada {{ w.check_every_days }} días · próxima el
+                {{ w.next_due | date:'d MMM' }}
+              </p>
+            }
+          </div>
+        }
+
+        <!-- ── Objetivos diarios ── -->
+        @if (p.targets; as t) {
+          <div class="energy-card card">
+            <p class="card-title">
+              <mat-icon>flag</mat-icon> Tu objetivo diario · {{ t.goal_label }}
+            </p>
+            <div class="energy-main">
+              <span class="energy-value">{{ t.calories | number:'1.0-0' }}</span>
+              <span class="energy-unit">kcal al día</span>
+            </div>
+            <div class="macro-targets">
+              <div><span class="mt-val">{{ t.proteins }}g</span><span class="mt-lab">Proteína</span></div>
+              <div><span class="mt-val">{{ t.carbs }}g</span><span class="mt-lab">Carbos</span></div>
+              <div><span class="mt-val">{{ t.fats }}g</span><span class="mt-lab">Grasas</span></div>
+              <div><span class="mt-val">{{ t.fiber }}g</span><span class="mt-lab">Fibra</span></div>
+            </div>
+            <ul class="basis">
+              @for (b of t.basis; track b) { <li>{{ b }}</li> }
+            </ul>
+            @if (t.overridden.length) {
+              <p class="basis-note">Has fijado a mano: {{ t.overridden.join(', ') }}</p>
+            }
+          </div>
+
+          @for (n of t.notes; track n) {
+            <p class="target-note"><mat-icon>info</mat-icon> {{ n }}</p>
+          }
+
+          <p class="limits">
+            Límites recomendados: saturadas por debajo de {{ t.saturated_fat_max }} g
+            y sal por debajo de {{ t.salt_max }} g al día.
+          </p>
+        } @else {
+          <p class="target-note">
+            <mat-icon>info</mat-icon>
+            Para calcular tus objetivos necesito edad, sexo, peso y altura.
+          </p>
+        }
+
+        <!-- ── Datos ── -->
+        <div class="section-header">
+          <span class="section-label">Tus datos</span>
+          @if (!editing()) {
+            <button class="edit-link" type="button" (click)="startEdit()">
+              <mat-icon>edit</mat-icon> Editar
+            </button>
+          }
+        </div>
+
+        @if (editing()) {
+          <!-- ═══ Edición ═══ -->
+          <div class="card edit-card">
+            <div class="field-grid">
+              <div>
+                <label class="field-label" for="p-age">Edad</label>
+                <input id="p-age" class="field-input" type="number" min="10" max="120"
+                       [ngModel]="draft().age" (ngModelChange)="patch('age', $event)">
+              </div>
+              <div>
+                <label class="field-label" for="p-sex">Sexo</label>
+                <select id="p-sex" class="field-input" [ngModel]="draft().sex"
+                        (ngModelChange)="patch('sex', $event)">
+                  <option [ngValue]="null">—</option>
+                  @for (o of sexOptions; track o.value) {
+                    <option [ngValue]="o.value">{{ o.label }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="field-label" for="p-height">Altura (cm)</label>
+                <input id="p-height" class="field-input" type="number" step="0.5" min="80" max="250"
+                       [ngModel]="draft().height_cm" (ngModelChange)="patch('height_cm', $event)">
+              </div>
+              <div>
+                <label class="field-label" for="p-days">Días de entreno</label>
+                <input id="p-days" class="field-input" type="number" min="0" max="14"
+                       [ngModel]="draft().training_days_per_week"
+                       (ngModelChange)="patch('training_days_per_week', $event)">
+              </div>
+              <div>
+                <label class="field-label" for="p-act">Nivel de actividad</label>
+                <select id="p-act" class="field-input" [ngModel]="draft().activity_level"
+                        (ngModelChange)="patch('activity_level', $event)">
+                  <option [ngValue]="null">—</option>
+                  @for (o of activityOptions; track o.value) {
+                    <option [ngValue]="o.value">{{ o.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <label class="field-label mt-12" for="p-job">Trabajo</label>
+            <input id="p-job" class="field-input" [ngModel]="draft().job"
+                   (ngModelChange)="patch('job', $event)" placeholder="Ej: programador">
+
+            <label class="field-label mt-12" for="p-jobact">Tipo de trabajo</label>
+            <select id="p-jobact" class="field-input" [ngModel]="draft().job_activity"
+                    (ngModelChange)="patch('job_activity', $event)">
+              <option [ngValue]="null">—</option>
+              @for (o of jobOptions; track o.value) {
+                <option [ngValue]="o.value">{{ o.label }}</option>
+              }
+            </select>
+
+            <label class="field-label mt-12" for="p-freq">Pesarme cada (días)</label>
+            <input id="p-freq" class="field-input" type="number" min="1" max="365"
+                   [ngModel]="draft().weight_check_every_days"
+                   (ngModelChange)="patch('weight_check_every_days', $event)">
+
+            <label class="field-label mt-12" for="p-loc">Dónde vives</label>
+            <input id="p-loc" class="field-input" [ngModel]="draft().location"
+                   (ngModelChange)="patch('location', $event)" placeholder="Ej: Madrid">
+
+            <label class="field-label mt-12" for="p-dir">Qué buscas</label>
+            <select id="p-dir" class="field-input" [ngModel]="draft().goal_direction"
+                    (ngModelChange)="patch('goal_direction', $event)">
+              <option [ngValue]="null">Deducirlo de mis objetivos</option>
+              @for (o of goalOptions; track o.value) {
+                <option [ngValue]="o.value">{{ o.label }}</option>
+              }
+            </select>
+
+            <span class="field-label mt-12">Objetivos diarios a mano</span>
+            <p class="override-hint">Déjalos vacíos para usar el cálculo automático.</p>
+            <div class="field-grid">
+              <div>
+                <label class="field-label" for="o-kcal">kcal</label>
+                <input id="o-kcal" class="field-input" type="number" min="0"
+                       [ngModel]="overrideOf('calories')"
+                       (ngModelChange)="patchOverride('calories', $event)">
+              </div>
+              <div>
+                <label class="field-label" for="o-prot">Proteína (g)</label>
+                <input id="o-prot" class="field-input" type="number" min="0"
+                       [ngModel]="overrideOf('proteins')"
+                       (ngModelChange)="patchOverride('proteins', $event)">
+              </div>
+            </div>
+
+            <label class="field-label mt-12" for="p-goal">Objetivo principal</label>
+            <input id="p-goal" class="field-input" [ngModel]="draft().primary_goal"
+                   (ngModelChange)="patch('primary_goal', $event)">
+
+            @for (f of listFields; track f.key) {
+              <span class="field-label mt-12">{{ f.label }}</span>
+              @for (item of listOf(f.key); track $index) {
+                <div class="list-row">
+                  <input class="field-input" [ngModel]="item"
+                         (ngModelChange)="patchListItem(f.key, $index, $event)">
+                  <button class="list-del" type="button" (click)="removeListItem(f.key, $index)"
+                          [attr.aria-label]="'Quitar de ' + f.label">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              }
+              <button class="list-add" type="button" (click)="addListItem(f.key)">
+                <mat-icon>add</mat-icon> Añadir
+              </button>
+            }
+
+            <label class="field-label mt-12" for="p-notes">Notas libres</label>
+            <textarea id="p-notes" class="field-input" rows="4"
+                      [ngModel]="draft().free_notes" (ngModelChange)="patch('free_notes', $event)"
+                      placeholder="Cualquier cosa que tu entrenador deba saber"></textarea>
+
+            <div class="edit-actions">
+              <button class="btn-ghost" type="button" (click)="cancelEdit()">Cancelar</button>
+              <button class="btn-primary" type="button" (click)="save()" [disabled]="saving()">
+                {{ saving() ? 'Guardando…' : 'Guardar' }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <!-- ═══ Vista ═══ -->
+          <div class="card data-card">
+            <div class="data-grid">
+              <div><span class="d-lab">Edad</span><span class="d-val">{{ p.age ?? '—' }}</span></div>
+              <div><span class="d-lab">Sexo</span><span class="d-val">{{ sexLabel(p.sex) }}</span></div>
+              <div><span class="d-lab">Peso</span><span class="d-val">{{ p.weight_kg ? p.weight_kg + ' kg' : '—' }}</span></div>
+              <div><span class="d-lab">Altura</span><span class="d-val">{{ p.height_cm ? p.height_cm + ' cm' : '—' }}</span></div>
+              <div><span class="d-lab">Entrenos</span><span class="d-val">{{ p.training_days_per_week ?? '—' }} / semana</span></div>
+              <div><span class="d-lab">Actividad</span><span class="d-val">{{ activityLabel(p.activity_level) }}</span></div>
+            </div>
+
+            <div class="data-rows">
+              @if (p.job) {
+                <p><mat-icon>work</mat-icon> {{ p.job }}<span class="d-sub">{{ jobLabel(p.job_activity) }}</span></p>
+              }
+              @if (p.location) {
+                <p><mat-icon>place</mat-icon> {{ p.location }}</p>
+              }
+              @if (p.primary_goal) {
+                <p><mat-icon>flag</mat-icon> {{ p.primary_goal }}</p>
+              }
+            </div>
+          </div>
+
+          @if (p.challenges.length) {
+            <div class="card list-card">
+              <p class="card-title"><mat-icon>emoji_events</mat-icon> Retos</p>
+              @for (c of p.challenges; track $index) {
+                <p class="challenge">
+                  {{ c.what }}
+                  @if (c.when) { <span class="challenge-when">{{ c.when }}</span> }
+                </p>
+              }
+            </div>
+          }
+
+          @for (f of listFields; track f.key) {
+            @if ($any(p)[f.key].length) {
+              <div class="card list-card">
+                <p class="card-title"><mat-icon>{{ f.icon }}</mat-icon> {{ f.label }}</p>
+                <div class="tags">
+                  @for (item of $any(p)[f.key]; track $index) {
+                    <span class="tag" [class.warn]="f.key.startsWith('injuries') || f.key === 'conditions'">
+                      {{ item }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          }
+
+          @if (p.free_notes) {
+            <div class="card list-card">
+              <p class="card-title"><mat-icon>notes</mat-icon> Notas</p>
+              <p class="free-notes">{{ p.free_notes }}</p>
+            </div>
+          }
+        }
+      }
+
+    </div>
+    }
+  }
+</div>

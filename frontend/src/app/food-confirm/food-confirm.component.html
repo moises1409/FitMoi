@@ -1,0 +1,234 @@
+@if (drafts.draft(); as d) {
+<div class="page">
+
+  <header class="top-bar">
+    <button class="icon-btn" type="button" (click)="cancel()" aria-label="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div style="flex:1">
+      <div class="top-bar-title">Guardar comida</div>
+      <div class="top-bar-sub">Revisa y confirma</div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ── Qué se va a guardar ── -->
+    <div class="food-card card">
+      <div class="food-head">
+        @if (d.photo_url) {
+          <img class="food-thumb" [src]="d.photo_url" alt="" loading="lazy">
+        } @else {
+          <span class="food-icon">
+            <mat-icon>{{ d.origin === 'library' ? 'bookmark' : d.origin === 'photo' ? 'photo_camera' : 'edit_note' }}</mat-icon>
+          </span>
+        }
+        <div class="food-text">
+          <p class="food-name">{{ d.name }}</p>
+          <p class="food-sub">
+            {{ scaled('calories') | number:'1.0-0' }} kcal
+            @if (d.quantity) { · {{ d.quantity }} }
+            @if (d.confidence === 'low') { · <span class="warn">confianza baja</span> }
+          </p>
+        </div>
+      </div>
+
+      @if (detail()?.is_shared_dish) {
+        <p class="shared-dish">
+          <mat-icon>restaurant_menu</mat-icon>
+          <span>
+            La foto es una fuente de <strong>{{ detail()!.servings_in_photo }} raciones</strong>;
+            esto es <strong>1 ración</strong>. Ajusta la porción si te serviste más o menos.
+          </span>
+        </p>
+      }
+
+      @if (calorieRange(); as r) {
+        <p class="calorie-range">
+          <mat-icon>straighten</mat-icon>
+          <span>
+            Rango realista: <strong>{{ r.min }}–{{ r.max }} kcal</strong>, según lo
+            generosa que sea la ración
+          </span>
+        </p>
+      }
+
+      <div class="food-macros">
+        @for (m of macroFields; track m.key) {
+          <span class="macro-pill" [class]="m.cls">
+            {{ m.short }} {{ scaled(m.key) | number:'1.0-1' }}g
+          </span>
+        }
+      </div>
+
+      <div class="portion-row">
+        <span class="portion-label">Porción</span>
+        @for (p of portions; track p) {
+          <button class="portion-btn" type="button"
+                  [class.selected]="d.portion === p"
+                  (click)="setPortion(p)">{{ p }}×</button>
+        }
+        <button class="edit-toggle" type="button" (click)="editing.set(!editing())"
+                [attr.aria-pressed]="editing()">
+          <mat-icon>{{ editing() ? 'check' : 'tune' }}</mat-icon>
+        </button>
+      </div>
+
+      @if (editing()) {
+        <div class="macro-edit-row">
+          <div class="macro-edit">
+            <input class="num-input" type="number" inputmode="decimal" min="0" step="10"
+                   [ngModel]="scaled('calories')"
+                   (ngModelChange)="onMacroChange('calories', $event)"
+                   aria-label="Calorías">
+            <span class="macro-edit-label">kcal</span>
+          </div>
+          @for (m of macroFields; track m.key) {
+            <div class="macro-edit">
+              <input class="num-input" type="number" inputmode="decimal" min="0" step="0.5"
+                     [ngModel]="scaled(m.key)"
+                     (ngModelChange)="onMacroChange(m.key, $event)"
+                     [attr.aria-label]="m.label + ' en gramos'">
+              <span class="macro-edit-label">{{ m.label }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ── Estimación de porciones y valoración ── -->
+    @if (detail()?.portion_summary || d.components.length || hasAssessment()) {
+      <div class="section-header">
+        <span class="section-label">Cómo se ha estimado</span>
+        <button class="detail-toggle" type="button" (click)="showDetail.set(!showDetail())"
+                [attr.aria-expanded]="showDetail()">
+          {{ showDetail() ? 'Ocultar' : 'Ver' }}
+          <mat-icon>{{ showDetail() ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </button>
+      </div>
+
+      @if (showDetail()) {
+        @if (detail()?.portion_summary; as summary) {
+          <p class="portion-summary">
+            <mat-icon>scale</mat-icon>
+            {{ summary }}
+          </p>
+        }
+
+        @if (d.components.length) {
+          <div class="breakdown card">
+            <table class="breakdown-table">
+              <caption class="sr-only">Desglose estimado por alimento</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Alimento</th>
+                  <th scope="col">Peso</th>
+                  <th scope="col">kcal</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (food of d.components; track trackFood($index, food)) {
+                  <tr>
+                    <td class="bd-name">{{ food.name }}</td>
+                    <td class="bd-grams">
+                      {{ foodGrams(food) ? '~' + foodGrams(food) + ' g' : (food.quantity || '—') }}
+                    </td>
+                    <td class="bd-cal">{{ foodCalories(food) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @if (hasAssessment()) {
+          @if (detail()!.assessment!.summary; as summary) {
+            <p class="verdict">{{ summary }}</p>
+          }
+
+          <div class="pros-cons">
+            @if (detail()!.assessment!.positives.length) {
+              <div class="pc-block good">
+                <p class="pc-title"><mat-icon>thumb_up</mat-icon> Lo más sano</p>
+                <ul>
+                  @for (p of detail()!.assessment!.positives; track p) { <li>{{ p }}</li> }
+                </ul>
+              </div>
+            }
+            @if (detail()!.assessment!.concerns.length) {
+              <div class="pc-block bad">
+                <p class="pc-title"><mat-icon>warning_amber</mat-icon> Lo menos sano</p>
+                <ul>
+                  @for (c of detail()!.assessment!.concerns; track c) { <li>{{ c }}</li> }
+                </ul>
+              </div>
+            }
+          </div>
+
+          @if (detail()!.assessment!.tip; as tip) {
+            <p class="tip">
+              <mat-icon>lightbulb</mat-icon>
+              {{ tip }}
+            </p>
+          }
+        }
+      }
+    }
+
+    <!-- ── Tipo de comida ── -->
+    <span class="field-label">¿Qué comida es?</span>
+    <div class="chip-selector" role="group" aria-label="Tipo de comida">
+      @for (m of mealTypes; track m.value) {
+        <button class="chip-btn" type="button"
+                [class.selected]="d.meal_type === m.value"
+                [attr.aria-pressed]="d.meal_type === m.value"
+                (click)="drafts.patch({ meal_type: m.value })">
+          <mat-icon>{{ m.icon }}</mat-icon>
+          {{ m.label }}
+        </button>
+      }
+    </div>
+
+    <!-- ── Cuándo la comiste ── -->
+    <span class="field-label">¿Cuándo la comiste?</span>
+    <div class="when-card card">
+      <div class="when-row">
+        <button class="when-arrow" type="button" (click)="shiftDay(-1)" aria-label="Día anterior">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <input class="when-input" type="date" [ngModel]="date()"
+               (ngModelChange)="setDate($event)" aria-label="Fecha">
+        <button class="when-arrow" type="button" (click)="shiftDay(1)" aria-label="Día siguiente">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+      <div class="when-row">
+        <mat-icon class="when-icon">schedule</mat-icon>
+        <input class="when-input" type="time" [ngModel]="time()"
+               (ngModelChange)="setTime($event)" aria-label="Hora">
+        <button class="when-now" type="button" (click)="setNow()">Ahora</button>
+      </div>
+      <p class="when-hint">{{ whenLabel() }} a las {{ time() }}</p>
+    </div>
+
+    <!-- ── Notas ── -->
+    <label class="field-label" for="notes">Notas (opcional)</label>
+    <input id="notes" class="field-input" [ngModel]="d.notes"
+           (ngModelChange)="drafts.patch({ notes: $event })"
+           placeholder="Ej: sin sal, casero..." maxlength="200">
+
+    <button class="btn-primary mt-16" type="button" (click)="save()" [disabled]="saving()">
+      <mat-icon>{{ saving() ? 'hourglass_top' : 'check' }}</mat-icon>
+      {{ saving() ? 'Guardando...' : 'Guardar' }}
+    </button>
+
+    @if (d.origin !== 'library') {
+      <p class="learn-note">
+        <mat-icon>auto_awesome</mat-icon>
+        Se guardará en tu biblioteca para reutilizarlo sin volver a analizarlo
+      </p>
+    }
+
+  </div>
+</div>
+}

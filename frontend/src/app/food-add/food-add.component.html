@@ -1,0 +1,146 @@
+<div class="page">
+
+  <header class="top-bar">
+    <div style="flex:1">
+      <div class="top-bar-title">Añadir comida</div>
+      <div class="top-bar-sub">Elige algo tuyo o crea uno nuevo</div>
+    </div>
+    <a class="icon-btn" routerLink="/library" aria-label="Gestionar biblioteca">
+      <mat-icon>library_books</mat-icon>
+    </a>
+    <app-theme-toggle />
+  </header>
+
+  <div class="content">
+
+    @if (targetDate()) {
+      <p class="target-banner">
+        <mat-icon>event</mat-icon>
+        Añadiendo a <strong>{{ targetLabel }}</strong>
+      </p>
+    }
+
+    <!-- ── Búsqueda ── -->
+    <div class="search-wrap">
+      <mat-icon class="search-icon" aria-hidden="true">search</mat-icon>
+      <input class="search-input" type="search" [ngModel]="query"
+             (ngModelChange)="onQueryChange($event)"
+             placeholder="Busca un plato o alimento"
+             aria-label="Buscar en tu biblioteca">
+      @if (query) {
+        <button class="search-clear" type="button" (click)="clearQuery()" aria-label="Limpiar búsqueda">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <!-- ── Entradas con IA ── -->
+    <div class="ai-actions">
+      <a class="ai-action" routerLink="/capture" [queryParams]="dateParams">
+        <mat-icon>photo_camera</mat-icon>
+        <span>Foto</span>
+      </a>
+      <a class="ai-action" routerLink="/describe" [queryParams]="dateParams">
+        <mat-icon>edit_note</mat-icon>
+        <span>Describir</span>
+      </a>
+    </div>
+
+    <a class="activity-action" routerLink="/activity" [queryParams]="dateParams">
+      <mat-icon>fitness_center</mat-icon>
+      <span>¿Has entrenado? Registrar actividad</span>
+      <mat-icon class="chevron">chevron_right</mat-icon>
+    </a>
+
+    @if (loading()) {
+      <div class="skeleton-list">
+        <div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+      </div>
+    } @else if (results() !== null) {
+      <!-- ── Resultados de búsqueda ── -->
+      <div class="section-header">
+        <span class="section-label">Resultados</span>
+        @if (searching()) { <span class="section-count">buscando…</span> }
+        @else { <span class="section-count">{{ results()!.length }}</span> }
+      </div>
+
+      @for (t of results()!; track trackTemplate($index, t)) {
+        <ng-container *ngTemplateOutlet="row; context: { $implicit: t }" />
+      } @empty {
+        <div class="no-results">
+          <p>Nada en tu biblioteca con «{{ query }}».</p>
+          <a class="btn-ghost" routerLink="/describe" [queryParams]="describeParams">
+            <mat-icon>auto_awesome</mat-icon>
+            Analizar «{{ query }}» con IA
+          </a>
+        </div>
+      }
+    } @else {
+      <!-- ── Vista por defecto ── -->
+      @if (suggested().length) {
+        <div class="section-header">
+          <span class="section-label">{{ slotLabel }}</span>
+        </div>
+        <div class="freq-grid">
+          @for (t of suggested(); track trackTemplate($index, t)) {
+            <button class="freq-card" type="button" (click)="add(t)">
+              @if (t.photo_url) {
+                <img class="freq-photo" [src]="t.photo_url" alt="" loading="lazy">
+              } @else {
+                <span class="freq-icon"><mat-icon>restaurant</mat-icon></span>
+              }
+              <span class="freq-name">{{ t.name }}</span>
+              <span class="freq-meta">
+                <span class="freq-kcal">{{ t.calories | number:'1.0-0' }} kcal</span>
+                <span class="freq-times">×{{ t.times_used }}</span>
+              </span>
+            </button>
+          }
+        </div>
+      }
+
+      @if (recent().length) {
+        <div class="section-header">
+          <span class="section-label">Recientes</span>
+        </div>
+        @for (t of recent(); track trackTemplate($index, t)) {
+          <ng-container *ngTemplateOutlet="row; context: { $implicit: t }" />
+        }
+      }
+
+      @if (!suggested().length && !recent().length) {
+        <div class="empty-state">
+          <div class="empty-icon"><mat-icon>menu_book</mat-icon></div>
+          <h3>Tu biblioteca está vacía</h3>
+          <p>Registra una comida con foto o descripción y quedará guardada aquí para reutilizarla con un toque</p>
+        </div>
+      }
+    }
+
+  </div>
+</div>
+
+<!-- Fila reutilizada por búsqueda y recientes -->
+<ng-template #row let-t>
+  <div class="lib-row card">
+    <button class="lib-main" type="button" (click)="add(t)">
+      @if (t.photo_url) {
+        <img class="lib-thumb" [src]="t.photo_url" alt="" loading="lazy">
+      } @else {
+        <span class="lib-icon"><mat-icon>{{ t.kind === 'dish' ? 'restaurant' : 'nutrition' }}</mat-icon></span>
+      }
+      <span class="lib-text">
+        <span class="lib-name">{{ t.name }}</span>
+        <span class="lib-sub">
+          {{ t.calories | number:'1.0-0' }} kcal
+          @if (t.quantity_label) { · {{ t.quantity_label }} }
+          @if (t.times_used) { · ×{{ t.times_used }} }
+        </span>
+      </span>
+    </button>
+    <button class="lib-add" type="button" (click)="add(t)" [attr.aria-label]="'Añadir ' + t.name">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</ng-template>

@@ -1,0 +1,336 @@
+<div class="page">
+
+  <header class="top-bar">
+    <a class="icon-btn" routerLink="/add" aria-label="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div style="flex:1">
+      <div class="top-bar-title">Mi biblioteca</div>
+      <div class="top-bar-sub">{{ items().length }} platos y alimentos</div>
+    </div>
+    <app-theme-toggle />
+  </header>
+
+  <div class="content">
+
+    <input class="field-input" type="search" [ngModel]="query"
+           (ngModelChange)="onQueryChange($event)"
+           placeholder="Filtrar por nombre" aria-label="Filtrar biblioteca">
+
+    @if (mergeSource(); as src) {
+      <div class="merge-banner">
+        <mat-icon>merge</mat-icon>
+        <span>Elige con qué fusionar <strong>{{ src.name }}</strong></span>
+        <button type="button" (click)="cancelMerge()">Cancelar</button>
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="skeleton-list">
+        <div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+      </div>
+    } @else {
+      @for (item of items(); track trackItem($index, item)) {
+        <div class="lib-card card"
+             [class.merging]="mergeSource() && mergeSource()!.id !== item.id"
+             [class.open]="expanded() === item.id">
+
+          @if (editing() === item.id) {
+            <!-- ═══ Modo edición ═══ -->
+            <div class="lib-edit">
+              <span class="field-label">Imagen</span>
+              <div class="photo-edit">
+                @if (item.photo_url) {
+                  <img class="photo-preview" [src]="item.photo_url" [alt]="item.name">
+                } @else {
+                  <span class="photo-preview empty"><mat-icon>image</mat-icon></span>
+                }
+                <div class="photo-actions">
+                  <button class="btn-ghost" type="button" (click)="photoInput.click()"
+                          [disabled]="uploading() === item.id">
+                    <mat-icon>{{ uploading() === item.id ? 'hourglass_top' : 'photo_camera' }}</mat-icon>
+                    {{ uploading() === item.id ? 'Subiendo…' : (item.photo_url ? 'Cambiar' : 'Añadir') }}
+                  </button>
+                  @if (item.photo_url) {
+                    <button class="btn-ghost" type="button" (click)="removePhoto(item)">
+                      <mat-icon>delete_outline</mat-icon>
+                      Quitar
+                    </button>
+                  }
+                </div>
+                <input #photoInput type="file" accept="image/*" hidden
+                       (change)="onPhotoSelected(item, $event)" aria-hidden="true" tabindex="-1">
+              </div>
+
+              <label class="field-label" [attr.for]="'n-' + item.id">Nombre</label>
+              <input [id]="'n-' + item.id" class="field-input" [ngModel]="draft().name"
+                     (ngModelChange)="patchDraft('name', $event)" maxlength="200">
+
+              <label class="field-label" [attr.for]="'q-' + item.id">Cantidad de referencia</label>
+              <input [id]="'q-' + item.id" class="field-input" [ngModel]="draft().quantity_label"
+                     (ngModelChange)="patchDraft('quantity_label', $event)"
+                     placeholder="Ej: 125 g, 1 plato" maxlength="80">
+
+              <span class="field-label">Macros por 1 porción</span>
+              <div class="macro-edit-row">
+                @for (m of macroFields; track m.key) {
+                  <div class="macro-edit">
+                    <input class="num-input" type="number" inputmode="decimal" min="0"
+                           [ngModel]="draft()[m.key]"
+                           (ngModelChange)="patchDraft(m.key, $event)"
+                           [attr.aria-label]="m.label">
+                    <span class="macro-edit-label">{{ m.label }}</span>
+                  </div>
+                }
+              </div>
+
+              <div class="section-split">
+                <span class="field-label">Porciones estimadas</span>
+                @if (componentsTotal(); as sum) {
+                  <button class="apply-sum" type="button" (click)="applySum()"
+                          [disabled]="sum === (draft().calories ?? 0)">
+                    <mat-icon>functions</mat-icon>
+                    Usar suma: {{ sum | number:'1.0-0' }} kcal
+                  </button>
+                }
+              </div>
+
+              @for (c of draftComponents(); track $index) {
+                <div class="comp-row">
+                  <input class="field-input comp-name" [ngModel]="c.name"
+                         (ngModelChange)="patchComponent($index, 'name', $event)"
+                         placeholder="Alimento" maxlength="200">
+                  <input class="num-input comp-g" type="number" inputmode="decimal" min="0"
+                         [ngModel]="c.grams"
+                         (ngModelChange)="patchComponent($index, 'grams', $event)"
+                         aria-label="Gramos">
+                  <span class="comp-unit">g</span>
+                  <input class="num-input comp-kcal" type="number" inputmode="numeric" min="0" step="5"
+                         [ngModel]="c.calories"
+                         (ngModelChange)="patchComponent($index, 'calories', $event)"
+                         aria-label="Calorías">
+                  <span class="comp-unit">kcal</span>
+                  <button class="comp-del" type="button" (click)="removeComponent($index)"
+                          [attr.aria-label]="'Quitar ' + c.name">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              } @empty {
+                <p class="comp-empty">Sin desglose. Añade las porciones que componen el plato.</p>
+              }
+
+              <button class="btn-ghost comp-add" type="button" (click)="addComponent()">
+                <mat-icon>add</mat-icon>
+                Añadir porción
+              </button>
+
+              <label class="field-label" [attr.for]="'ps-' + item.id">Resumen de la estimación</label>
+              <textarea [id]="'ps-' + item.id" class="field-input" rows="3" maxlength="400"
+                        [ngModel]="draft().portion_summary"
+                        (ngModelChange)="patchDraft('portion_summary', $event)"
+                        placeholder="Ej: ración de ~350 g (130 g de pasta + 120 g de salsa)"></textarea>
+
+              <div class="edit-actions">
+                <button class="btn-ghost" type="button" (click)="cancelEdit()">Cancelar</button>
+                <button class="btn-primary" type="button" (click)="saveEdit(item)">Guardar</button>
+              </div>
+            </div>
+          } @else {
+            <!-- ═══ Fila ═══ -->
+            <div class="lib-head">
+              <button class="lib-body" type="button"
+                      (click)="mergeSource() ? completeMerge(item) : toggle(item)"
+                      [attr.aria-expanded]="expanded() === item.id">
+                @if (item.photo_url) {
+                  <img class="lib-thumb" [src]="item.photo_url" alt="" loading="lazy">
+                } @else {
+                  <span class="lib-icon">
+                    <mat-icon>{{ item.kind === 'dish' ? 'restaurant' : 'nutrition' }}</mat-icon>
+                  </span>
+                }
+                <span class="lib-text">
+                  <span class="lib-name">{{ item.name }}</span>
+                  <span class="lib-sub">
+                    {{ item.calories | number:'1.0-0' }} kcal
+                    · P{{ item.proteins | number:'1.0-0' }} C{{ item.carbs | number:'1.0-0' }} G{{ item.fats | number:'1.0-0' }}
+                  </span>
+                  <span class="lib-usage">
+                    @if (item.times_used) {
+                      Usado {{ item.times_used }} {{ item.times_used === 1 ? 'vez' : 'veces' }}
+                    } @else { Sin usar todavía }
+                    @if (hasAnalysis(item)) { · <span class="has-detail">con análisis</span> }
+                  </span>
+                </span>
+                <mat-icon class="lib-chevron">expand_more</mat-icon>
+              </button>
+
+              @if (mergeSource()) {
+                <!-- durante una fusión la fila entera es el destino -->
+              } @else if (pendingDelete() === item.id) {
+                <div class="delete-confirm">
+                  <button class="dc-yes" type="button" (click)="requestDelete(item)">
+                    <mat-icon>delete_forever</mat-icon>
+                    Eliminar
+                  </button>
+                  <button class="dc-no" type="button" (click)="cancelDelete()">Cancelar</button>
+                </div>
+              } @else {
+                <div class="lib-actions">
+                  <button class="icon-mini" type="button" (click)="startEdit(item)"
+                          [attr.aria-label]="'Editar ' + item.name">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="icon-mini" type="button" (click)="startMerge(item)"
+                          [attr.aria-label]="'Fusionar ' + item.name">
+                    <mat-icon>merge</mat-icon>
+                  </button>
+                  <button class="icon-mini danger" type="button" (click)="requestDelete(item)"
+                          [attr.aria-label]="'Eliminar ' + item.name">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- ═══ Detalle ═══ -->
+            @if (expanded() === item.id) {
+              <div class="lib-detail">
+
+                <div class="detail-macros">
+                  @for (m of macroFields; track m.key) {
+                    <span class="macro-pill" [class]="m.cls">
+                      {{ m.short }} {{ item[m.key] | number:'1.0-1' }}g
+                    </span>
+                  }
+                </div>
+
+                @if (item.analysis.calories_min && item.analysis.calories_max) {
+                  <p class="calorie-range">
+                    <mat-icon>straighten</mat-icon>
+                    <span>
+                      Rango estimado:
+                      <strong>{{ item.analysis.calories_min }}–{{ item.analysis.calories_max }} kcal</strong>
+                    </span>
+                  </p>
+                }
+
+                @if (item.analysis.is_shared_dish) {
+                  <p class="shared-dish">
+                    <mat-icon>restaurant_menu</mat-icon>
+                    <span>
+                      La foto era una fuente de
+                      <strong>{{ item.analysis.servings_in_photo }} raciones</strong>;
+                      esto es <strong>1 ración</strong>.
+                    </span>
+                  </p>
+                }
+
+                @if (item.analysis.portion_summary; as summary) {
+                  <p class="portion-summary">
+                    <mat-icon>scale</mat-icon>
+                    {{ summary }}
+                  </p>
+                }
+
+                @if (item.components.length) {
+                  <div class="breakdown">
+                    <table class="breakdown-table">
+                      <caption class="sr-only">Desglose por alimento</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Alimento</th>
+                          <th scope="col">Peso</th>
+                          <th scope="col">kcal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (food of item.components; track $index) {
+                          <tr>
+                            <td class="bd-name">{{ food.name }}</td>
+                            <td class="bd-grams">{{ food.grams ? '~' + food.grams + ' g' : (food.quantity || '—') }}</td>
+                            <td class="bd-cal">{{ food.calories }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
+                @if (assessmentOf(item); as a) {
+                  @if (a.summary) { <p class="verdict">{{ a.summary }}</p> }
+
+                  <div class="pros-cons">
+                    @if (a.positives.length) {
+                      <div class="pc-block good">
+                        <p class="pc-title"><mat-icon>thumb_up</mat-icon> Lo más sano</p>
+                        <ul>@for (p of a.positives; track p) { <li>{{ p }}</li> }</ul>
+                      </div>
+                    }
+                    @if (a.concerns.length) {
+                      <div class="pc-block bad">
+                        <p class="pc-title"><mat-icon>warning_amber</mat-icon> Lo menos sano</p>
+                        <ul>@for (c of a.concerns; track c) { <li>{{ c }}</li> }</ul>
+                      </div>
+                    }
+                  </div>
+
+                  @if (a.tip) {
+                    <p class="tip"><mat-icon>lightbulb</mat-icon> {{ a.tip }}</p>
+                  }
+                } @else {
+                  <p class="no-analysis">
+                    <mat-icon>info</mat-icon>
+                    <span>
+                      Se guardó antes de que la app valorara la composición, así que no
+                      tiene análisis de lo más y lo menos sano.
+                    </span>
+                  </p>
+                }
+
+                <div class="detail-meta">
+                  @if (item.usual_time) {
+                    <span><mat-icon>schedule</mat-icon> Sueles tomarlo a las {{ item.usual_time }}</span>
+                  }
+                  @if (item.quantity_label) {
+                    <span><mat-icon>straighten</mat-icon> Ración: {{ item.quantity_label }}</span>
+                  }
+                </div>
+
+                @if (item.photo_url) {
+                  <button class="btn-ghost" type="button" (click)="reanalyze(item)"
+                          [disabled]="reanalyzing() === item.id">
+                    <mat-icon>{{ reanalyzing() === item.id ? 'hourglass_top' : 'auto_awesome' }}</mat-icon>
+                    {{ reanalyzing() === item.id
+                        ? 'Analizando la foto…'
+                        : (hasAnalysis(item) ? 'Volver a analizar' : 'Analizar la foto guardada') }}
+                  </button>
+                  <p class="reanalyze-note">
+                    Recalcula macros y valoración con la foto, y corrige los días donde aparece.
+                  </p>
+                }
+              </div>
+            }
+          }
+        </div>
+      } @empty {
+        <div class="empty-state">
+          <div class="empty-icon"><mat-icon>menu_book</mat-icon></div>
+          <h3>{{ query ? 'Sin coincidencias' : 'Biblioteca vacía' }}</h3>
+          <p>
+            {{ query
+              ? 'Prueba con otro término.'
+              : 'Cada comida que registres se guardará aquí automáticamente para reutilizarla.' }}
+          </p>
+        </div>
+      }
+    }
+
+    <p class="footnote">
+      <mat-icon>info</mat-icon>
+      Al editar un alimento se corrigen también los días en los que aparece.
+      Borrarlo lo quita del catálogo, pero las comidas ya registradas se conservan.
+    </p>
+
+  </div>
+</div>

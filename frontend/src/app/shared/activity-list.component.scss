@@ -1,0 +1,149 @@
+/* .card vive en styles.scss */
+
+.activity-card {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+/* Franja de color de la familia; el nombre va escrito debajo, nunca solo color. */
+.activity-bar {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.activity-body {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 12px;
+}
+
+.activity-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.activity-icon {
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.activity-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-dur {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.activity-meta {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.from-whoop { color: var(--accent); font-weight: 700; }
+
+.activity-notes {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* ── Acciones ── */
+.activity-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.act-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+
+  mat-icon { font-size: 15px; height: 15px; width: 15px; }
+
+  &:hover { border-color: var(--primary); color: var(--primary); }
+  &.danger { margin-left: auto; }
+  &.danger:hover { border-color: #FF5252; color: #FF5252; }
+}
+
+/* Lo que llega de la pulsera no se edita: la siguiente sincronización lo pisaría. */
+.act-locked {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  mat-icon { font-size: 13px; height: 13px; width: 13px; }
+}
+
+.act-confirm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px;
+  background: #C62828;
+  color: white;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  animation: act-in 0.15s ease-out;
+
+  mat-icon { font-size: 15px; height: 15px; width: 15px; }
+}
+
+.act-cancel {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+}
+
+@keyframes act-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.no-activity {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 2px 4px 6px;
+}

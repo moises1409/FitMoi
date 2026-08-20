@@ -1,0 +1,38 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'fitmoi-dev-secret')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://fitmoi:fitmoi@localhost:5433/fitmoi')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
+
+    ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+    ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-sonnet-4-6')
+
+    # Zona horaria del usuario: determina que cuenta como "hoy" en la vista diaria.
+    APP_TIMEZONE = os.environ.get('APP_TIMEZONE', 'Europe/Madrid')
+
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif', 'heic', 'heif'}
+
+    # Toda imagen se normaliza a JPEG con este lado largo maximo antes de
+    # enviarla a Claude: evita el limite de 5 MB por imagen y reduce el coste
+    # en tokens de vision (1568 px es el maximo util para Sonnet 4.x).
+    IMAGE_MAX_DIMENSION = int(os.environ.get('IMAGE_MAX_DIMENSION', 1568))
+    IMAGE_JPEG_QUALITY = int(os.environ.get('IMAGE_JPEG_QUALITY', 85))
+
+    # Fotos analizadas pero nunca confirmadas se borran pasadas estas horas.
+    ORPHAN_MAX_AGE_HOURS = int(os.environ.get('ORPHAN_MAX_AGE_HOURS', 24))
+
+    DEBUG = _env_bool('FLASK_DEBUG', False)

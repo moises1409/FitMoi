@@ -1,0 +1,245 @@
+/* .content .card .field-* .num-input .macro-edit* .chip-* .btn-* .macro-pill
+   .icon-btn -> styles.scss */
+
+/* ── Qué se guarda ── */
+.food-card { padding: 14px; }
+
+.food-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.food-thumb,
+.food-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-subtle);
+  mat-icon { color: var(--primary); font-size: 24px; height: 24px; width: 24px; }
+}
+
+.food-text { min-width: 0; flex: 1; }
+
+.food-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.food-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.warn { color: #C62828; font-weight: 600; }
+body.dark-theme .warn { color: #FF8A80; }
+
+.food-macros {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+/* ── Porción ── */
+.portion-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.portion-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 2px;
+}
+
+.portion-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &.selected {
+    background: var(--primary-subtle);
+    border-color: var(--primary);
+    color: var(--primary-dark);
+  }
+}
+
+body.dark-theme .portion-btn.selected { color: var(--primary); }
+
+.edit-toggle {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon { font-size: 17px; height: 17px; width: 17px; }
+  &[aria-pressed='true'] {
+    border-color: var(--primary);
+    background: var(--primary-subtle);
+    color: var(--primary-dark);
+  }
+}
+
+body.dark-theme .edit-toggle[aria-pressed='true'] { color: var(--primary); }
+
+.macro-edit-row { margin-top: 12px; }
+
+/* ── Cuándo ── */
+.when-card {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.when-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.when-arrow {
+  width: 36px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon { font-size: 19px; height: 19px; width: 19px; }
+  &:hover { border-color: var(--primary); color: var(--primary); }
+}
+
+.when-icon {
+  width: 36px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 20px;
+  height: 20px;
+  text-align: center;
+}
+
+.when-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  /* 16px evita el zoom automático de iOS al enfocar */
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  outline: none;
+  text-align: center;
+
+  &:focus { border-color: var(--primary); }
+  /* El icono nativo del picker se ve mal en tema oscuro */
+  &::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: pointer; }
+}
+
+body.dark-theme .when-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+.when-now {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover { border-color: var(--primary); color: var(--primary); }
+}
+
+.when-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+
+  /* Solo la inicial: `capitalize` pondría mayúscula en cada palabra
+     ("Ayer A Las 21:30"). */
+  &::first-letter { text-transform: uppercase; }
+}
+
+.learn-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  mat-icon { font-size: 14px; height: 14px; width: 14px; color: var(--primary); flex-shrink: 0; }
+}
+
+/* ── Rango de calorías ── */
+.calorie-range {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  mat-icon { font-size: 15px; height: 15px; width: 15px; color: var(--accent); flex-shrink: 0; }
+  strong { color: var(--text); font-weight: 700; }
+}
+
+.detail-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+  mat-icon { font-size: 16px; height: 16px; width: 16px; }
+}
+
+body.dark-theme .detail-toggle { color: var(--primary); }
+

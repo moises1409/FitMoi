@@ -1,0 +1,147 @@
+/* .content .field-* .field-grid .btn-primary .icon-btn -> styles.scss */
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.suggestion {
+  padding: 5px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+
+  &:hover { border-color: var(--primary); color: var(--primary); }
+  &.selected {
+    background: var(--primary-subtle);
+    border-color: var(--primary);
+    color: var(--primary-dark);
+  }
+}
+
+body.dark-theme .suggestion.selected { color: var(--primary); }
+
+/* ── Familia ── */
+.family-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.family-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.family-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 10px;
+  min-width: 74px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  mat-icon { font-size: 19px; height: 19px; width: 19px; }
+
+  /* El color de familia identifica; el texto siempre lo acompaña, nunca va solo. */
+  &.selected {
+    border-color: var(--family-color);
+    background: color-mix(in srgb, var(--family-color) 12%, transparent);
+    color: var(--text);
+  }
+}
+
+.family-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--family-color);
+}
+
+.family-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ── Cuándo ── */
+.when-row {
+  display: flex;
+  gap: 8px;
+
+  .field-input {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    font-weight: 600;
+    &::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: pointer; }
+  }
+}
+
+body.dark-theme .when-row .field-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+/* ── Sensación ── */
+.feeling-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.feeling-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 2px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+
+  &.selected {
+    border-color: var(--primary);
+    background: var(--primary-subtle);
+    color: var(--primary-dark);
+  }
+}
+
+body.dark-theme .feeling-btn.selected { color: var(--primary); }
+
+.feeling-num { font-size: 15px; font-weight: 800; line-height: 1; }
+.feeling-lab { font-size: 9px; font-weight: 600; text-align: center; }
+
+.calories-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  text-align: center;
+  padding: 0 8px;
+}

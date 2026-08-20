@@ -1,0 +1,55 @@
+<div class="page">
+
+  <header class="top-bar">
+    <button class="icon-btn" type="button" (click)="goBack()" aria-label="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div style="flex:1">
+      <div class="top-bar-title">Describir comida</div>
+      <div class="top-bar-sub">Sin foto: escribe qué has comido</div>
+    </div>
+    <app-theme-toggle />
+  </header>
+
+  <div class="content">
+
+    @if (analyzing()) {
+      <div class="analyzing" role="status" aria-live="polite">
+        <div class="pulse-dot"></div>
+        <p class="analyzing-title">Claude está calculando los nutrientes…</p>
+        <p class="analyzing-quote">«{{ description }}»</p>
+      </div>
+    } @else {
+      <div class="card describe-card">
+        <label class="field-label" for="desc">¿Qué has comido?</label>
+        <textarea id="desc" class="field-input describe-input" [(ngModel)]="description"
+          rows="4" maxlength="500" autofocus
+          placeholder="Ej: un plato de macarrones con tomate y queso rallado, ración normal"></textarea>
+        <p class="hint">
+          <mat-icon aria-hidden="true">lightbulb</mat-icon>
+          Cuanto más concretes las cantidades, mejor será la estimación
+        </p>
+      </div>
+
+      <div class="section-header">
+        <span class="section-label">Ejemplos</span>
+      </div>
+      <div class="examples">
+        @for (ex of examples; track ex) {
+          <button class="example" type="button" (click)="useExample(ex)">{{ ex }}</button>
+        }
+      </div>
+
+      <button class="btn-primary" type="button" (click)="analyze()" [disabled]="!canAnalyze">
+        <mat-icon>auto_awesome</mat-icon>
+        Analizar con IA
+      </button>
+
+      <p class="tip-photo">
+        ¿Prefieres hacer una foto? También puedes
+        <a routerLink="/capture">usar la cámara</a> y añadir una descripción encima.
+      </p>
+    }
+
+  </div>
+</div>

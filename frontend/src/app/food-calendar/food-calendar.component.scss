@@ -1,0 +1,302 @@
+/* El hero diario, .meal-*, .macro-*, .confirm-delete, .progress-*, .empty-*
+   y .skeleton-* viven en styles.scss */
+
+/* ═══ MES ═══ */
+.month-card { padding: 12px 8px 10px; }
+
+.weekday-row,
+.week-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 6px;
+}
+
+.day-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 1px 5px;
+  min-height: 56px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover { background: var(--hover); }
+  &.outside { opacity: 0.32; }
+  &.today { border-color: var(--primary); }
+  &.has-data { background: var(--bg); }
+}
+
+.day-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+}
+
+.day-cell.today .day-number { color: var(--primary-dark); font-weight: 800; }
+body.dark-theme .day-cell.today .day-number { color: var(--primary); }
+
+/* Barra vertical: la altura codifica kcal respecto al objetivo */
+.day-bar-track {
+  width: 6px;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--border);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.day-bar {
+  width: 100%;
+  border-radius: 3px;
+  background: var(--primary);
+  transition: height 0.4s ease-out;
+  &.over { background: #FF7043; }
+}
+
+.day-empty { height: 22px; }
+
+.day-kcal {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+/* ═══ SEMANA ═══ */
+.chart-card { padding: 18px 12px 12px; }
+
+.chart {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  height: 168px;
+}
+
+/* Línea del objetivo diario, posicionada con --goal-pos */
+.goal-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(44px + (100% - 44px) * var(--goal-pos) / 100);
+  height: 0;
+  border-top: 1.5px dashed var(--text-muted);
+  opacity: 0.55;
+  pointer-events: none;
+
+  &::after {
+    content: attr(data-label);
+    position: absolute;
+    right: 0;
+    top: -13px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--surface);
+    padding: 0 3px;
+  }
+}
+
+.chart-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.chart-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.chart-bar {
+  width: 70%;
+  max-width: 26px;
+  min-height: 0;
+  border-radius: 5px 5px 2px 2px;
+  background: var(--primary);
+  transition: height 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+
+  &.over { background: #FF7043; }
+  &.today { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--primary); }
+}
+
+.chart-value {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.chart-day {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  &.today { color: var(--primary-dark); font-weight: 800; }
+}
+
+body.dark-theme .chart-day.today { color: var(--primary); }
+
+/* ── Fila de día (detalle semanal) ── */
+.day-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &.today { border-color: var(--primary); }
+}
+
+.day-row-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 38px;
+  flex-shrink: 0;
+}
+
+.day-row-weekday {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.day-row-num {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.day-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.day-row-kcal {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  &.over { color: #C62828; }
+}
+
+body.dark-theme .day-row-kcal.over { color: #FF8A80; }
+
+.day-row-meals,
+.day-row-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.day-row-chevron {
+  color: var(--text-muted);
+  font-size: 20px;
+  height: 20px;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+/* ── Resumen del periodo ── */
+.stats-note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  mat-icon { font-size: 13px; height: 13px; width: 13px; }
+}
+
+.add-to-day {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-decoration: none;
+  mat-icon { font-size: 16px; height: 16px; width: 16px; }
+}
+
+body.dark-theme .add-to-day { color: var(--primary); }
+
+/* ── Puntos de actividad en la celda del mes ── */
+.day-marks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 7px;
+  margin-top: 1px;
+}
+
+.day-mark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.day-mark-more {
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+/* La leyenda es obligatoria: un color sin nombre no informa a todo el mundo. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 0 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+

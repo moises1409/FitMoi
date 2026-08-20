@@ -1,0 +1,105 @@
+<div class="page">
+
+  <header class="top-bar">
+    <button class="icon-btn" type="button" (click)="cancel()" aria-label="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div style="flex:1">
+      <div class="top-bar-title">
+        {{ editingId() ? 'Editar actividad' : 'Registrar actividad' }}
+      </div>
+      <div class="top-bar-sub">
+        {{ editingId() ? 'Corrige lo que no cuadre' : 'Lo que has entrenado hoy' }}
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ── Qué has hecho ── -->
+    <label class="field-label" for="a-sport">¿Qué has hecho?</label>
+    <input id="a-sport" class="field-input" [ngModel]="sportName"
+           (ngModelChange)="onSportChange($event)"
+           placeholder="Ej: pádel, circuit training, calistenia" maxlength="120">
+
+    <div class="suggestions">
+      @for (s of suggestions; track s) {
+        <button class="suggestion" type="button" (click)="useSuggestion(s)"
+                [class.selected]="sportName === s">{{ s }}</button>
+      }
+    </div>
+
+    <!-- ── Familia (el color del calendario) ── -->
+    @if (families().length) {
+      <span class="field-label mt-12">Tipo</span>
+      <p class="family-hint">
+        Marca el color con el que aparecerá en el calendario. Se deduce del
+        nombre, pero puedes cambiarlo.
+      </p>
+      <div class="family-row">
+        @for (f of families(); track f.key) {
+          <button class="family-btn" type="button" (click)="setFamily(f.key)"
+                  [class.selected]="family()?.key === f.key"
+                  [style.--family-color]="f.color"
+                  [attr.aria-pressed]="family()?.key === f.key">
+            <span class="family-dot"></span>
+            <mat-icon>{{ f.icon }}</mat-icon>
+            <span class="family-label">{{ f.label }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- ── Cuánto ── -->
+    <div class="field-grid mt-12">
+      <div>
+        <label class="field-label" for="a-dur">Duración (min)</label>
+        <input id="a-dur" class="field-input" type="number" inputmode="numeric"
+               min="1" max="1440" [(ngModel)]="durationMin" placeholder="45">
+      </div>
+      <div>
+        <label class="field-label" for="a-cal">Calorías <small>(opcional)</small></label>
+        <input id="a-cal" class="field-input" type="number" inputmode="numeric"
+               min="0" max="10000" [(ngModel)]="calories" placeholder="—">
+      </div>
+    </div>
+
+    <!-- ── Cuándo ── -->
+    <span class="field-label mt-12">¿Cuándo?</span>
+    <div class="when-row">
+      <input class="field-input" type="date" [(ngModel)]="date" aria-label="Fecha">
+      <input class="field-input" type="time" [(ngModel)]="time" aria-label="Hora">
+    </div>
+
+    <!-- ── Sensación ── -->
+    <span class="field-label mt-12">¿Cómo fue?</span>
+    <div class="feeling-row" role="group" aria-label="Sensación de la sesión">
+      @for (f of feelings; track f) {
+        <button class="feeling-btn" type="button"
+                [class.selected]="feeling === f"
+                [attr.aria-pressed]="feeling === f"
+                (click)="feeling = feeling === f ? null : f">
+          <span class="feeling-num">{{ f }}</span>
+          <span class="feeling-lab">{{ feelingLabels[f] }}</span>
+        </button>
+      }
+    </div>
+
+    <!-- ── Comentarios ── -->
+    <label class="field-label mt-12" for="a-notes">Comentarios</label>
+    <textarea id="a-notes" class="field-input" rows="3" maxlength="1000"
+              [(ngModel)]="notes"
+              placeholder="Ej: trabajo de handstand contra pared, buenas sensaciones"></textarea>
+
+    <button class="btn-primary mt-16" type="button" (click)="save()" [disabled]="!canSave">
+      <mat-icon>{{ saving() ? 'hourglass_top' : 'check' }}</mat-icon>
+      {{ saving() ? 'Guardando...' : editingId() ? 'Guardar cambios' : 'Guardar actividad' }}
+    </button>
+
+    <p class="calories-note">
+      Las calorías de la actividad son informativas: no se restan de tu objetivo
+      diario, que ya cuenta con que entrenas.
+    </p>
+
+  </div>
+</div>

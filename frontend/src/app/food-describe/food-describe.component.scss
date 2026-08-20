@@ -1,0 +1,86 @@
+/* .content .card .field-* .btn-primary .section-header -> styles.scss */
+
+.describe-card { padding: 16px; }
+
+.describe-input {
+  min-height: 96px;
+  margin-bottom: 10px;
+}
+
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  mat-icon { font-size: 15px; height: 15px; width: 15px; color: var(--accent); flex-shrink: 0; }
+}
+
+.examples { display: flex; flex-direction: column; gap: 8px; }
+
+.example {
+  text-align: left;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+
+  &:hover { border-color: var(--primary); color: var(--text); }
+}
+
+.tip-photo {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+  padding: 0 8px;
+
+  a { color: var(--primary-dark); font-weight: 600; }
+}
+
+body.dark-theme .tip-photo a { color: var(--primary); }
+
+/* ── Analizando ── */
+.analyzing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.pulse-dot {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary-subtle);
+  border: 3px solid var(--primary);
+  animation: pulse-soft 1.4s ease-in-out infinite;
+}
+
+.analyzing-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.analyzing-quote {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.12); opacity: 0.6; }
+}

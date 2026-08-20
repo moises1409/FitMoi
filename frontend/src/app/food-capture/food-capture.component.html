@@ -1,0 +1,137 @@
+<div class="page">
+
+  <header class="top-bar">
+    <a class="icon-btn" routerLink="/add" aria-label="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div style="flex:1">
+      <div class="top-bar-title">Fotos del plato</div>
+      <div class="top-bar-sub">Varias vistas mejoran la estimación</div>
+    </div>
+    <span class="ai-badge">
+      <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+      IA
+    </span>
+  </header>
+
+  @if (analyzing()) {
+    <div class="analyzing-wrap" role="status" aria-live="polite">
+      <div class="analyzing-card card">
+        <img [src]="shots()[0].preview" alt="" class="analyzing-img">
+        <div class="analyzing-overlay" aria-hidden="true">
+          <div class="pulse-ring"></div>
+          <mat-icon class="scan-icon">document_scanner</mat-icon>
+        </div>
+      </div>
+
+      <div class="analyzing-status">
+        <div class="status-dot" aria-hidden="true"></div>
+        <span>Claude está analizando tu comida...</span>
+      </div>
+
+      <div class="steps-list" aria-hidden="true">
+        <div class="step active">
+          <mat-icon>image_search</mat-icon>
+          <span>Identificando alimentos</span>
+        </div>
+        <div class="step active">
+          <mat-icon>scale</mat-icon>
+          <span>Estimando el peso de cada porción</span>
+        </div>
+        <div class="step">
+          <mat-icon>calculate</mat-icon>
+          <span>Calculando nutrientes a partir del peso</span>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="content">
+
+      <!-- ── Fotos añadidas ── -->
+      @if (shots().length) {
+        <div class="shots-grid">
+          @for (shot of shots(); track shot.preview) {
+            <div class="shot">
+              <img [src]="shot.preview" [alt]="'Foto ' + ($index + 1)">
+              <button class="shot-remove" type="button" (click)="removeShot($index)"
+                      [attr.aria-label]="'Quitar foto ' + ($index + 1)">
+                <mat-icon>close</mat-icon>
+              </button>
+              <span class="shot-index">{{ $index + 1 }}</span>
+            </div>
+          }
+
+          @if (canAddMore) {
+            <button class="shot add" type="button" (click)="moreInput.click()">
+              <mat-icon>add_a_photo</mat-icon>
+              <span>Otra vista</span>
+            </button>
+          }
+        </div>
+        <input #moreInput type="file" accept="image/*" multiple hidden
+               (change)="onFilesSelected($event)" aria-hidden="true" tabindex="-1">
+
+        <p class="shots-hint">
+          <mat-icon>tips_and_updates</mat-icon>
+          Añade el plato desde arriba y de lado, o el envase: cuanto mejor se vea
+          el volumen real, menos se dispara la estimación de calorías.
+        </p>
+      } @else {
+        <button class="upload-zone" type="button" (click)="galleryInput.click()">
+          <span class="upload-icon-wrap">
+            <mat-icon aria-hidden="true">add_photo_alternate</mat-icon>
+          </span>
+          <h3>Sube hasta {{ maxPhotos }} fotos</h3>
+          <p>Claude estimará el peso de cada alimento y de ahí calculará los nutrientes</p>
+        </button>
+        <input #galleryInput type="file" accept="image/*" multiple hidden
+               (change)="onFilesSelected($event)" aria-hidden="true" tabindex="-1">
+
+        <div class="divider"><span>o usa la cámara</span></div>
+
+        <button class="btn-primary" type="button" (click)="cameraInput.click()">
+          <mat-icon aria-hidden="true">camera_alt</mat-icon>
+          Abrir cámara
+        </button>
+        <input #cameraInput type="file" accept="image/*" capture="environment" hidden
+               (change)="onFilesSelected($event)" aria-hidden="true" tabindex="-1">
+
+        <div class="tips-card card">
+          <p class="tips-title">
+            <mat-icon aria-hidden="true">tips_and_updates</mat-icon>
+            Consejos para mejor análisis
+          </p>
+          <ul class="tips-list">
+            <li>Fotografía desde arriba y también de lado: la altura de la comida es lo que da el volumen</li>
+            <li>Que se vea el plato o un cubierto entero, sirven de referencia de tamaño</li>
+            <li>Si hay salsa o aceite, dilo en la descripción: es lo que más se subestima</li>
+          </ul>
+        </div>
+      }
+
+      <!-- ── Descripción ── -->
+      @if (shots().length) {
+        <div class="context-card card">
+          <label class="context-label" for="context-input">
+            <mat-icon aria-hidden="true">edit_note</mat-icon>
+            Describe el plato (opcional)
+          </label>
+          <textarea id="context-input" class="field-input" [(ngModel)]="description"
+            placeholder="Ej: ración de 200 g, lleva dos cucharadas de aceite, la salsa es light..."
+            rows="3" maxlength="1000"></textarea>
+        </div>
+
+        <button class="btn-primary" type="button" (click)="analyze()">
+          <mat-icon aria-hidden="true">search</mat-icon>
+          Analizar {{ shots().length === 1 ? 'la foto' : 'las ' + shots().length + ' fotos' }}
+        </button>
+
+        <button class="btn-ghost" type="button" (click)="clearAll()">
+          <mat-icon aria-hidden="true">delete_outline</mat-icon>
+          Empezar de nuevo
+        </button>
+      }
+
+    </div>
+  }
+</div>

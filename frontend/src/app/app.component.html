@@ -1,0 +1,39 @@
+<div class="app-shell">
+  <router-outlet></router-outlet>
+
+  <nav class="bottom-nav" aria-label="Navegación principal">
+    <a class="nav-item" routerLink="/log" routerLinkActive="active" matRipple>
+      <div class="nav-icon-wrap">
+        <mat-icon>today</mat-icon>
+      </div>
+      <span>Hoy</span>
+    </a>
+
+    <a class="nav-item" routerLink="/calendar" routerLinkActive="active" matRipple>
+      <div class="nav-icon-wrap">
+        <mat-icon>calendar_month</mat-icon>
+      </div>
+      <span>Calendario</span>
+    </a>
+
+    <div class="nav-fab-wrap">
+      <a class="nav-fab" routerLink="/add" matRipple aria-label="Añadir comida">
+        <mat-icon>add</mat-icon>
+      </a>
+    </div>
+
+    <a class="nav-item" routerLink="/library" routerLinkActive="active" matRipple>
+      <div class="nav-icon-wrap">
+        <mat-icon>menu_book</mat-icon>
+      </div>
+      <span>Biblioteca</span>
+    </a>
+
+    <a class="nav-item" routerLink="/profile" routerLinkActive="active" matRipple>
+      <div class="nav-icon-wrap">
+        <mat-icon>person</mat-icon>
+      </div>
+      <span>Perfil</span>
+    </a>
+  </nav>
+</div>

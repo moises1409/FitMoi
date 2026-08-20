@@ -1,0 +1,86 @@
+<div class="page chat-page">
+
+  <header class="top-bar">
+    <a class="icon-btn" routerLink="/profile" aria-label="Volver al perfil">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div style="flex:1">
+      <div class="top-bar-title">Tu entrenador</div>
+      <div class="top-bar-sub">
+        @if (missing().length) {
+          Falta: {{ missing()[0] }}
+        } @else {
+          Perfil completo
+        }
+      </div>
+    </div>
+    <button class="icon-btn" type="button" (click)="reset()" aria-label="Reiniciar conversación">
+      <mat-icon>restart_alt</mat-icon>
+    </button>
+  </header>
+
+  <div class="progress-strip">
+    <span class="progress-track">
+      <span class="progress-fill" [style.width.%]="completeness()"></span>
+    </span>
+    <span class="progress-pct">{{ completeness() }}%</span>
+    @if (completeness() >= 70) {
+      <button class="finish-btn" type="button" (click)="finish()">
+        <mat-icon>check_circle</mat-icon>
+        Ver mi perfil
+      </button>
+    }
+  </div>
+
+  <div class="messages" #scroller>
+    @if (loading()) {
+      <div class="skeleton-item"></div>
+      <div class="skeleton-item"></div>
+    } @else {
+      @for (turn of turns(); track $index) {
+        <div class="turn" [class.mine]="turn.role === 'user'">
+          @if (turn.role === 'assistant') {
+            <span class="coach-avatar" aria-hidden="true">
+              <mat-icon>fitness_center</mat-icon>
+            </span>
+          }
+          <div class="bubble">
+            <p>{{ turn.content }}</p>
+            @if (turn.noted?.length) {
+              <div class="noted">
+                @for (f of turn.noted; track f) {
+                  <span class="noted-chip">
+                    <mat-icon>check</mat-icon>
+                    {{ label(f) }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (sending()) {
+        <div class="turn">
+          <span class="coach-avatar" aria-hidden="true">
+            <mat-icon>fitness_center</mat-icon>
+          </span>
+          <div class="bubble typing" role="status" aria-label="El entrenador está escribiendo">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <div class="composer">
+    <textarea class="composer-input" [(ngModel)]="draft" (keydown)="onKeydown($event)"
+              rows="1" maxlength="2000" placeholder="Escribe tu respuesta…"
+              aria-label="Tu respuesta"></textarea>
+    <button class="composer-send" type="button" (click)="send()"
+            [disabled]="sending() || !draft.trim()" aria-label="Enviar">
+      <mat-icon>arrow_upward</mat-icon>
+    </button>
+  </div>
+
+</div>

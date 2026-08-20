@@ -1,0 +1,339 @@
+<div class="page">
+
+  <header class="top-bar">
+    <div class="top-bar-icon">
+      <mat-icon>calendar_month</mat-icon>
+    </div>
+    <div style="flex:1">
+      <div class="top-bar-title">Calendario</div>
+      <div class="top-bar-sub">Tu historial día a día</div>
+    </div>
+    <app-theme-toggle />
+  </header>
+
+  <!-- ── Selector de modo ── -->
+  <div class="mode-switch" role="group" aria-label="Vista del calendario">
+    @for (m of modes; track m.value) {
+      <button class="mode-btn" type="button"
+              [class.selected]="mode() === m.value"
+              [attr.aria-pressed]="mode() === m.value"
+              (click)="setMode(m.value)">
+        <mat-icon>{{ m.icon }}</mat-icon>
+        {{ m.label }}
+      </button>
+    }
+  </div>
+
+  <!-- ── Navegación del periodo ── -->
+  <div class="period-nav">
+    <button class="nav-arrow" type="button" (click)="shift(-1)" aria-label="Periodo anterior">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="period-label">{{ periodLabel() | titlecase }}</span>
+    <button class="nav-arrow" type="button" (click)="shift(1)" aria-label="Periodo siguiente">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  @if (!isToday() || mode() !== 'day') {
+    <button class="today-jump" type="button" (click)="goToToday()">
+      <mat-icon>my_location</mat-icon>
+      Ir a hoy
+    </button>
+  }
+
+  <div class="content">
+
+    @if (loading()) {
+      <div class="skeleton-card"></div>
+      <div class="skeleton-list">
+        <div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+      </div>
+    } @else if (mode() === 'month') {
+      <!-- ═══ MES ═══ -->
+      <div class="card month-card">
+        <div class="weekday-row" aria-hidden="true">
+          @for (d of weekdayLabels; track $index) {
+            <span class="weekday">{{ d }}</span>
+          }
+        </div>
+
+        @for (w of weeks(); track trackWeek($index)) {
+          <div class="week-row">
+            @for (cell of w; track trackCell($index, cell)) {
+              <button class="day-cell" type="button"
+                      [class.outside]="!cell.inRange"
+                      [class.today]="cell.isToday"
+                      [class.has-data]="cell.meals > 0"
+                      (click)="openDay(cell)"
+                      [attr.aria-label]="(cell.date | date:'EEEE d MMMM')
+                        + (cell.meals ? ': ' + cell.calories + ' kilocalorías' : ': sin registros')">
+                <span class="day-number">{{ cell.date | date:'d' }}</span>
+                @if (cell.meals) {
+                  <span class="day-bar-track">
+                    <span class="day-bar" [class.over]="cell.over"
+                          [style.height.%]="cell.percent"></span>
+                  </span>
+                  <span class="day-kcal">{{ cell.calories | number:'1.0-0' }}</span>
+                } @else {
+                  <span class="day-empty"></span>
+                }
+                @if (cell.marks.length) {
+                  <span class="day-marks">
+                    @for (m of visibleMarks(cell.marks); track m.family) {
+                      <span class="day-mark" [style.background]="colorOf(m.family)"></span>
+                    }
+                    @if (extraMarks(cell.marks)) {
+                      <span class="day-mark-more">+{{ extraMarks(cell.marks) }}</span>
+                    }
+                  </span>
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      @if (families().length) {
+        <div class="legend">
+          @for (f of families(); track f.key) {
+            <span class="legend-item">
+              <span class="legend-dot" [style.background]="f.color"></span>
+              {{ f.label }}
+            </span>
+          }
+        </div>
+      }
+
+      <ng-container *ngTemplateOutlet="statsBlock" />
+    } @else if (mode() === 'week') {
+      <!-- ═══ SEMANA ═══ -->
+      <div class="card chart-card">
+        <div class="chart" [style.--goal-pos.%]="goalLinePosition()">
+          <span class="goal-line" [attr.data-label]="goal + ' kcal'"></span>
+          @for (cell of week(); track trackCell($index, cell)) {
+            <button class="chart-col" type="button" (click)="openDay(cell)"
+                    [attr.aria-label]="(cell.date | date:'EEEE') + ': ' + cell.calories + ' kcal'">
+              <span class="chart-bar-wrap">
+                <span class="chart-bar" [class.over]="cell.over" [class.today]="cell.isToday"
+                      [style.height.%]="barHeight(cell)"></span>
+              </span>
+              <span class="chart-value">{{ cell.calories ? (cell.calories | number:'1.0-0') : '–' }}</span>
+              <span class="chart-day" [class.today]="cell.isToday">
+                {{ cell.date | date:'EEEEE' | titlecase }}
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="section-header">
+        <span class="section-label">Detalle por día</span>
+      </div>
+
+      @for (cell of week(); track trackCell($index, cell)) {
+        <button class="day-row card" type="button" (click)="openDay(cell)"
+                [class.today]="cell.isToday">
+          <span class="day-row-date">
+            <span class="day-row-weekday">{{ cell.date | date:'EEE' | titlecase }}</span>
+            <span class="day-row-num">{{ cell.date | date:'d' }}</span>
+          </span>
+          <span class="day-row-body">
+            @if (cell.meals) {
+              <span class="day-row-kcal" [class.over]="cell.over">
+                {{ cell.calories | number:'1.0-0' }} kcal
+              </span>
+              <span class="progress-track">
+                <span class="progress-fill" [class.over]="cell.over"
+                      [style.width.%]="cell.percent"></span>
+              </span>
+              <span class="day-row-meals">
+                {{ cell.meals }} {{ cell.meals === 1 ? 'comida' : 'comidas' }}
+              </span>
+            } @else {
+              <span class="day-row-empty">Sin registros</span>
+            }
+          </span>
+          <mat-icon class="day-row-chevron">chevron_right</mat-icon>
+        </button>
+      }
+
+      <ng-container *ngTemplateOutlet="statsBlock" />
+    } @else {
+      <!-- ═══ DÍA ═══ -->
+      <div class="hero-card card">
+        <div class="hero-inner">
+          <div class="ring-wrap">
+            <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+              <circle class="ring-bg" cx="60" cy="60" r="50"/>
+              <circle class="ring-fill" cx="60" cy="60" r="50"
+                [class.ring-over]="dayOver()"
+                [style.stroke-dasharray]="314.159"
+                [style.stroke-dashoffset]="314.159 * (1 - dayPercent() / 100)"/>
+            </svg>
+            <div class="ring-label" role="img"
+                 [attr.aria-label]="(dayTotals().calories | number:'1.0-0') + ' de ' + goal + ' kilocalorías'">
+              <span class="ring-cal">{{ dayTotals().calories | number:'1.0-0' }}</span>
+              <span class="ring-unit">kcal</span>
+              <span class="ring-goal">/ {{ goal }}</span>
+            </div>
+          </div>
+
+          <div class="macro-grid">
+            @for (m of macroFields; track m.key) {
+              <div class="macro-stat">
+                <span class="macro-val" [class]="m.cls">
+                  {{ $any(dayTotals())[m.key] | number:'1.0-0' }}<small>g</small>
+                  @if (targetOf($any(m.key)); as goal) {
+                    <span class="macro-goal">/ {{ goal }}</span>
+                  }
+                </span>
+                <span class="macro-name">{{ m.label }}</span>
+                @if (targetOf($any(m.key))) {
+                  <span class="progress-track macro-bar">
+                    <span class="progress-fill" [class]="m.cls"
+                          [style.width.%]="macroPercent($any(m.key))"></span>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (isToday()) {
+          <div class="status-bar" [class.over]="dayOver()">
+            <mat-icon>{{ dayOver() ? 'warning_amber' : 'check_circle' }}</mat-icon>
+            @if (dayOver()) {
+              <span>Superado en <strong>{{ dayTotals().calories - goal | number:'1.0-0' }} kcal</strong></span>
+            } @else {
+              <span>
+                Quedan <strong>{{ goal - dayTotals().calories | number:'1.0-0' }} kcal</strong>
+                @if (targets(); as t) { para tu objetivo de {{ t.goal_label }} }
+              </span>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="section-header">
+        <span class="section-label">Actividad</span>
+        <a class="add-to-day" routerLink="/activity" [queryParams]="{ date: anchorIso() }">
+          <mat-icon>add</mat-icon>
+          Registrar
+        </a>
+      </div>
+
+      <app-activity-list [activities]="dayActivities()" (changed)="load()" />
+
+      <div class="section-header">
+        <span class="section-label">Comidas</span>
+        <a class="add-to-day" routerLink="/add" [queryParams]="{ date: anchorIso() }">
+          <mat-icon>add</mat-icon>
+          Añadir a este día
+        </a>
+      </div>
+
+      @if (dayLogs().length) {
+        <div class="meals-list">
+          @for (log of dayLogs(); track trackLog($index, log)) {
+            <div class="meal-card card">
+              @if (log.photo_url) {
+                <div class="meal-photo-wrap">
+                  <img [src]="log.photo_url" [alt]="'Foto de ' + log.description"
+                       class="meal-photo" loading="lazy" (error)="onPhotoError(log)">
+                  <div class="meal-type-badge">{{ getMealLabel(log.meal_type) }}</div>
+                </div>
+              }
+              <div class="meal-body">
+                <div class="meal-row-top">
+                  <div class="meal-left">
+                    @if (!log.photo_url) {
+                      <div class="meal-icon-wrap">
+                        <mat-icon>{{ getMealIcon(log.meal_type) }}</mat-icon>
+                      </div>
+                    }
+                    <div>
+                      <p class="meal-desc">{{ log.description }}</p>
+                      <p class="meal-time">
+                        @if (!log.photo_url) {
+                          <span class="meal-badge">{{ getMealLabel(log.meal_type) }}</span>
+                        }
+                        {{ log.created_at | date:'HH:mm' }}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="meal-right">
+                    @if (pendingDeleteId() === log.id) {
+                      <button class="confirm-delete" type="button" (click)="requestDelete(log)">
+                        <mat-icon>delete_forever</mat-icon>
+                        Confirmar
+                      </button>
+                      <button class="delete-btn" type="button" (click)="cancelDelete()"
+                              aria-label="Cancelar eliminación">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    } @else {
+                      <span class="meal-calories">{{ log.total_calories | number:'1.0-0' }}</span>
+                      <span class="meal-kcal">kcal</span>
+                      <button class="delete-btn" type="button" (click)="requestDelete(log)"
+                              [attr.aria-label]="'Eliminar ' + log.description">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    }
+                  </div>
+                </div>
+                <div class="meal-macros">
+                  <span class="macro-pill protein">P {{ log.proteins | number:'1.0-0' }}g</span>
+                  <span class="macro-pill carbs">C {{ log.carbs | number:'1.0-0' }}g</span>
+                  <span class="macro-pill fat">G {{ log.fats | number:'1.0-0' }}g</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-icon"><mat-icon>no_meals</mat-icon></div>
+          <h3>Sin registros este día</h3>
+          <p>No hay ninguna comida guardada el {{ anchor() | date:'d \'de\' MMMM' }}</p>
+          <a class="btn-primary" routerLink="/add" [queryParams]="{ date: anchorIso() }">
+            <mat-icon>add</mat-icon>
+            Añadir comida
+          </a>
+        </div>
+      }
+    }
+
+  </div>
+</div>
+
+<!-- Resumen del periodo, compartido por mes y semana -->
+<ng-template #statsBlock>
+  @if (stats(); as s) {
+    <div class="stats-card card">
+      <div class="stat">
+        <span class="stat-value">{{ s.avg_calories | number:'1.0-0' }}</span>
+        <span class="stat-label">kcal de media</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.days_logged }}</span>
+        <span class="stat-label">de {{ s.days_in_range }} días</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ s.total_calories | number:'1.0-0' }}</span>
+        <span class="stat-label">kcal en total</span>
+      </div>
+    </div>
+    @if (s.days_logged) {
+      <p class="stats-note">
+        <mat-icon>info</mat-icon>
+        @if (s.days_logged === 1) {
+          La media corresponde al único día con registros.
+        } @else {
+          La media cuenta solo los {{ s.days_logged }} días con registros.
+        }
+      </p>
+    }
+  }
+</ng-template>

@@ -1,0 +1,335 @@
+/* .content .card .field-* .num-input .btn-* .empty-* .skeleton-* -> styles.scss */
+
+.merge-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--text);
+  font-size: 13px;
+
+  mat-icon { color: var(--accent); font-size: 18px; height: 18px; width: 18px; flex-shrink: 0; }
+  span { flex: 1; }
+
+  button {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}
+
+.lib-card {
+  /* En columna: la fila y su ficha desplegable se apilan. En fila, la ficha
+     se colocaría al lado y desbordaría la tarjeta. */
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, transform 0.15s;
+
+  /* Durante una fusión, los candidatos destino se destacan como pulsables */
+  &.merging {
+    border-color: var(--accent);
+    cursor: pointer;
+    &:active { transform: scale(0.99); }
+  }
+}
+
+.lib-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lib-usage { font-size: 11px; color: var(--text-muted); }
+
+.lib-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 6px 6px 0;
+  flex-shrink: 0;
+}
+
+.icon-mini {
+  width: 30px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+
+  mat-icon { font-size: 17px; height: 17px; width: 17px; }
+
+  &:hover { background: var(--hover); color: var(--primary); }
+  &.danger:hover { background: rgba(255,82,82,0.12); color: #FF5252; }
+}
+
+/* ── Edición ── */
+.lib-edit {
+  flex: 1;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .field-label:not(:first-child) { margin-top: 10px; }
+}
+
+.footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  mat-icon { font-size: 14px; height: 14px; width: 14px; flex-shrink: 0; }
+}
+
+/* ── Edición de imagen ── */
+.photo-edit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.photo-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1.5px dashed var(--border);
+
+  &.empty mat-icon { color: var(--text-muted); font-size: 24px; height: 24px; width: 24px; }
+}
+
+img.photo-preview { border-style: solid; }
+
+.photo-actions {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .btn-ghost { height: 34px; font-size: 13px; }
+}
+
+/* ── Confirmación de borrado explícita ── */
+/* Un simple cambio de icono (delete_outline -> delete_forever) era invisible:
+   la confirmación tiene que decir lo que va a pasar. */
+.delete-confirm {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  flex-shrink: 0;
+  animation: dc-in 0.15s ease-out;
+}
+
+.dc-yes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 11px;
+  border: none;
+  border-radius: 20px;
+  background: #C62828;
+  color: white;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  mat-icon { font-size: 15px; height: 15px; width: 15px; }
+}
+
+.dc-no {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px;
+}
+
+@keyframes dc-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Ficha desplegable ── */
+.lib-card.open { border-color: var(--primary); }
+
+.lib-head { display: flex; align-items: stretch; }
+
+.lib-chevron {
+  color: var(--text-muted);
+  font-size: 20px;
+  height: 20px;
+  width: 20px;
+  flex-shrink: 0;
+  align-self: center;
+  transition: transform 0.2s;
+}
+
+.lib-card.open .lib-chevron { transform: rotate(180deg); }
+
+.has-detail { color: var(--primary-dark); font-weight: 600; }
+body.dark-theme .has-detail { color: var(--primary); }
+
+.lib-detail {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-macros { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.no-analysis {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  mat-icon { font-size: 15px; height: 15px; width: 15px; flex-shrink: 0; }
+}
+
+.detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  mat-icon { font-size: 14px; height: 14px; width: 14px; }
+}
+
+.reanalyze-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Edición de porciones ── */
+.section-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+
+  .field-label { margin: 0; }
+}
+
+.apply-sum {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+
+  mat-icon { font-size: 14px; height: 14px; width: 14px; }
+  &:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-subtle); }
+  &:disabled { opacity: 0.45; cursor: default; }
+}
+
+body.dark-theme .apply-sum { color: var(--primary); }
+
+.comp-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.comp-name { flex: 1; min-width: 0; padding: 8px 10px; font-size: 14px; }
+
+.comp-g,
+.comp-kcal {
+  width: 58px;
+  height: 38px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.comp-unit {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.comp-del {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon { font-size: 16px; height: 16px; width: 16px; }
+  &:hover { background: rgba(255,82,82,0.12); color: #FF5252; }
+}
+
+.comp-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 2px;
+}
+
+.comp-add { height: 36px; font-size: 13px; margin-top: 2px; }
