@@ -67,18 +67,27 @@ reconstruye la biblioteca desde los registros (idempotente).
 
 ## Despliegue (Railway)
 
-- Producción sirve con **gunicorn** vía `Procfile` → `wsgi:app` (no `run.py`, que
-  es el servidor de desarrollo). `wsgi.py` espera la BD, prepara el esquema y
-  expone `app`.
+- **Un solo servicio** vía `Dockerfile` multi-etapa: Node construye el Angular y
+  Python (Flask) sirve la API **y** el SPA construido desde el mismo origen. Así
+  la cookie del candado funciona sin CORS y solo hay una pieza que desplegar.
+  Railway detecta el `Dockerfile` y lo usa (el `Procfile`, para builds sin Docker,
+  queda de reserva). Arranca con `gunicorn wsgi:app` (no `run.py`, que es dev).
+- **Flask sirve el SPA**: `_register_frontend()` en `app/__init__.py` sirve
+  `FRONTEND_DIST` y hace fallback a `index.html` para el enrutado de Angular. En
+  dev `FRONTEND_DIST` está vacío y el frontend lo sirve `ng serve` en :4200.
+  `environment.ts` usa `apiUrl:'/api'` (relativo), que vale igual en dev (proxy)
+  y en producción (mismo origen).
 - **Postgres**: servicio gestionado de Railway; inyecta `DATABASE_URL`.
 - **Variables obligatorias**: `ANTHROPIC_API_KEY`, `APP_ACCESS_TOKEN` (candado),
-  `COOKIE_SECURE=1`, `APP_TIMEZONE`, y `UPLOAD_FOLDER` con la ruta ABSOLUTA de un
-  volumen persistente (p. ej. `/data/uploads`).
-- **Fotos**: el disco del contenedor es efímero — sin un volumen montado y
-  apuntado por `UPLOAD_FOLDER`, las imágenes se borran en cada deploy.
-  `UPLOAD_FOLDER` absoluto se usa tal cual; relativo se ancla a `backend/`.
+  `COOKIE_SECURE=1`, `APP_TIMEZONE`. `FRONTEND_DIST` y `UPLOAD_FOLDER` ya vienen
+  fijadas en el `Dockerfile` (`/app/frontend_dist` y `/data/uploads`).
+- **Fotos**: montar un **volumen** en `/data`. El disco del contenedor es
+  efímero — sin volumen, las imágenes se borran en cada deploy. `UPLOAD_FOLDER`
+  absoluto se usa tal cual; relativo se ancla a `backend/`.
 - Auto-deploy: cada push a `main` despliega. Por eso el trabajo desde el móvil
   debería ir en rama → PR → merge cuando se ha verificado (ver más abajo).
+- El `Dockerfile` se valida en local con `docker build` + `docker run` apuntando
+  `DATABASE_URL` al Postgres del host (`host.docker.internal:5433`).
 
 ## Estructura
 

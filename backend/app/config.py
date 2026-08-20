@@ -30,6 +30,11 @@ class Config:
     # Zona horaria del usuario: determina que cuenta como "hoy" en la vista diaria.
     APP_TIMEZONE = os.environ.get('APP_TIMEZONE', 'Europe/Madrid')
 
+    # Carpeta del build de Angular a servir por Flask (mismo origen -> la cookie
+    # del candado funciona sin CORS). Vacio en dev: el frontend lo sirve
+    # `ng serve` aparte. En produccion apunta al dist copiado en la imagen.
+    FRONTEND_DIST = os.environ.get('FRONTEND_DIST', '')
+
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif', 'heic', 'heif'}
 
     # Toda imagen se normaliza a JPEG con este lado largo maximo antes de

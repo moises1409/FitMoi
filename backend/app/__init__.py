@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, abort, send_file, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
@@ -52,4 +52,32 @@ def create_app():
     def health():
         return {'status': 'ok', 'service': 'fitmoi-api'}
 
+    _register_frontend(app)
+
     return app
+
+
+def _register_frontend(app):
+    """Sirve el build de Angular desde el propio Flask (mismo origen).
+
+    En dev FRONTEND_DIST está vacío y el frontend lo sirve `ng serve` en :4200,
+    así que esto no se registra. En producción sirve los ficheros del SPA y, para
+    cualquier ruta que no sea un archivo ni la API, devuelve index.html para que
+    el enrutado de Angular funcione al recargar o entrar directo a /calendar, etc.
+    """
+    dist = app.config.get('FRONTEND_DIST', '')
+    if not dist or not os.path.isdir(dist):
+        return
+
+    index_file = os.path.join(dist, 'index.html')
+
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def spa(path):
+        # La API y /health tienen sus propias rutas; aquí no se tocan.
+        if path.startswith('api/') or path == 'health':
+            abort(404)
+        target = os.path.join(dist, path)
+        if path and os.path.isfile(target):
+            return send_from_directory(dist, path)
+        return send_file(index_file)

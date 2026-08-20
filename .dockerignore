@@ -1,0 +1,11 @@
+# Contexto de build mínimo: el Dockerfile reinstala dependencias desde cero.
+.git
+.env
+**/node_modules
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+frontend/.angular
+frontend/dist
+backend/uploads
