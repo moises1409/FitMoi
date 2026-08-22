@@ -70,8 +70,11 @@ reconstruye la biblioteca desde los registros (idempotente).
 - **Un solo servicio** vía `Dockerfile` multi-etapa: Node construye el Angular y
   Python (Flask) sirve la API **y** el SPA construido desde el mismo origen. Así
   la cookie del candado funciona sin CORS y solo hay una pieza que desplegar.
-  Railway detecta el `Dockerfile` y lo usa (el `Procfile`, para builds sin Docker,
-  queda de reserva). Arranca con `gunicorn wsgi:app` (no `run.py`, que es dev).
+  Railway detecta el `Dockerfile` y lo usa. Arranca con `gunicorn wsgi:app` (no
+  `run.py`, que es dev). El puerto se lee de `$PORT` en `backend/gunicorn.conf.py`
+  (en Python, no en la shell): un `--bind 0.0.0.0:$PORT` en el comando llegaría a
+  gunicorn con `$PORT` literal si Railway lo ejecuta en forma exec. **No añadir un
+  `Procfile`**: Railway lo usaría por encima del CMD y reintroduciría ese fallo.
 - **Flask sirve el SPA**: `_register_frontend()` en `app/__init__.py` sirve
   `FRONTEND_DIST` y hace fallback a `index.html` para el enrutado de Angular. En
   dev `FRONTEND_DIST` está vacío y el frontend lo sirve `ng serve` en :4200.

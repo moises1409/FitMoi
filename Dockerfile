@@ -24,6 +24,7 @@ COPY --from=frontend /build/dist/frontend/browser ./frontend_dist
 ENV FRONTEND_DIST=/app/frontend_dist \
     UPLOAD_FOLDER=/data/uploads
 
-# Railway inyecta $PORT; 8080 como valor por defecto para correr en local.
+# El puerto y los workers se leen en gunicorn.conf.py (desde $PORT, en Python),
+# así el arranque no depende de que ninguna shell expanda variables.
 EXPOSE 8080
-CMD ["sh", "-c", "gunicorn --chdir backend --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120 wsgi:app"]
+CMD ["gunicorn", "--chdir", "backend", "--config", "/app/backend/gunicorn.conf.py", "wsgi:app"]
