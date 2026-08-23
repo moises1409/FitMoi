@@ -1,6 +1,28 @@
 /* El hero diario, .meal-*, .macro-*, .confirm-delete, .progress-*, .empty-*
    y .skeleton-* viven en styles.scss */
 
+/* ── Volver al mes desde el detalle de un día ── */
+.back-to-month {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 12px 16px 0;
+  padding: 6px 12px 6px 8px;
+  border: none;
+  border-radius: 20px;
+  background: transparent;
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  mat-icon { font-size: 18px; height: 18px; width: 18px; }
+  &:hover { background: var(--hover); }
+}
+
+body.dark-theme .back-to-month { color: var(--primary); }
+
 /* ═══ MES ═══ */
 .month-card { padding: 12px 8px 10px; }
 
@@ -77,156 +99,6 @@ body.dark-theme .day-cell.today .day-number { color: var(--primary); }
   font-weight: 700;
   color: var(--text-muted);
   line-height: 1;
-}
-
-/* ═══ SEMANA ═══ */
-.chart-card { padding: 18px 12px 12px; }
-
-.chart {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  height: 168px;
-}
-
-/* Línea del objetivo diario, posicionada con --goal-pos */
-.goal-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(44px + (100% - 44px) * var(--goal-pos) / 100);
-  height: 0;
-  border-top: 1.5px dashed var(--text-muted);
-  opacity: 0.55;
-  pointer-events: none;
-
-  &::after {
-    content: attr(data-label);
-    position: absolute;
-    right: 0;
-    top: -13px;
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--text-muted);
-    background: var(--surface);
-    padding: 0 3px;
-  }
-}
-
-.chart-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  border: none;
-  background: transparent;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 0;
-}
-
-.chart-bar-wrap {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.chart-bar {
-  width: 70%;
-  max-width: 26px;
-  min-height: 0;
-  border-radius: 5px 5px 2px 2px;
-  background: var(--primary);
-  transition: height 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
-
-  &.over { background: #FF7043; }
-  &.today { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--primary); }
-}
-
-.chart-value {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  line-height: 1;
-}
-
-.chart-day {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  &.today { color: var(--primary-dark); font-weight: 800; }
-}
-
-body.dark-theme .chart-day.today { color: var(--primary); }
-
-/* ── Fila de día (detalle semanal) ── */
-.day-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 12px;
-  width: 100%;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-
-  &.today { border-color: var(--primary); }
-}
-
-.day-row-date {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 38px;
-  flex-shrink: 0;
-}
-
-.day-row-weekday {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.day-row-num {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.1;
-}
-
-.day-row-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.day-row-kcal {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  &.over { color: #C62828; }
-}
-
-body.dark-theme .day-row-kcal.over { color: #FF8A80; }
-
-.day-row-meals,
-.day-row-empty {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.day-row-chevron {
-  color: var(--text-muted);
-  font-size: 20px;
-  height: 20px;
-  width: 20px;
-  flex-shrink: 0;
 }
 
 /* ── Resumen del periodo ── */

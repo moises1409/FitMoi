@@ -137,14 +137,10 @@ export class FoodConfirmComponent implements OnInit {
       next: () => {
         this.drafts.clear();
         this.snack.open('Comida guardada', 'OK', { duration: 2200 });
-        // Vuelve al día al que se ha añadido, no siempre a hoy.
-        if (targetDate === toISODate(new Date())) {
-          this.router.navigate(['/log']);
-        } else {
-          this.router.navigate(['/calendar'], {
-            queryParams: { mode: 'day', date: targetDate },
-          });
-        }
+        // Vuelve al detalle del día al que se ha añadido, dentro del calendario.
+        this.router.navigate(['/calendar'], {
+          queryParams: { mode: 'day', date: targetDate },
+        });
       },
       error: (err) => {
         this.saving.set(false);

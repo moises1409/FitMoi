@@ -27,12 +27,14 @@ import {
   monthGrid,
   startOfDay,
   startOfMonth,
-  startOfWeek,
   toISODate,
-  weekDays,
 } from '../shared/date.utils';
 
-export type CalendarMode = 'day' | 'week' | 'month';
+/**
+ * El calendario es siempre mensual; `day` no es una vista alternativa sino el
+ * detalle al que se entra al tocar un día de la rejilla.
+ */
+export type CalendarMode = 'day' | 'month';
 
 /** Una celda de la rejilla: la fecha más sus totales, si los hay. */
 export interface DayCell {
@@ -84,11 +86,6 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
   targets = signal<DailyTargets | null>(null);
   readonly macroFields = MACRO_FIELDS.filter((m) => m.key !== 'salt' && m.key !== 'saturated_fat');
   readonly weekdayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-  readonly modes: { value: CalendarMode; label: string; icon: string }[] = [
-    { value: 'day', label: 'Día', icon: 'today' },
-    { value: 'week', label: 'Semana', icon: 'date_range' },
-    { value: 'month', label: 'Mes', icon: 'calendar_month' },
-  ];
 
   mode = signal<CalendarMode>('month');
   anchor = signal<Date>(startOfDay(new Date()));
@@ -112,6 +109,16 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
 
   readonly isToday = computed(() => isSameDay(this.anchor(), new Date()));
 
+  /** «Ir a hoy» solo aparece cuando no estás ya en el periodo actual. */
+  readonly showTodayJump = computed(() => {
+    const a = this.anchor();
+    const now = new Date();
+    if (this.mode() === 'month') {
+      return a.getMonth() !== now.getMonth() || a.getFullYear() !== now.getFullYear();
+    }
+    return !isSameDay(a, now);
+  });
+
   /** Fecha seleccionada en ISO, para pasarla a /add como día destino. */
   readonly anchorIso = computed(() => toISODate(this.anchor()));
 
@@ -119,31 +126,10 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
     monthGrid(this.anchor()).map((week) => week.map((d) => this.toCell(d, this.anchor().getMonth()))),
   );
 
-  readonly week = computed<DayCell[]>(() =>
-    weekDays(this.anchor()).map((d) => this.toCell(d, -1)),
-  );
-
-  /** Escala de las barras de la semana: el mayor entre el objetivo y el pico. */
-  readonly weekPeak = computed(() =>
-    Math.max(this.goal, ...this.week().map((d) => d.calories)),
-  );
-
   readonly periodLabel = computed(() => {
     const a = this.anchor();
     if (this.mode() === 'month') {
       return a.toLocaleDateString('es', { month: 'long', year: 'numeric' });
-    }
-    if (this.mode() === 'week') {
-      const days = weekDays(a);
-      const from = days[0];
-      const to = days[6];
-      const sameMonth = from.getMonth() === to.getMonth();
-      const fromLabel = from.toLocaleDateString('es', {
-        day: 'numeric',
-        month: sameMonth ? undefined : 'short',
-      });
-      const toLabel = to.toLocaleDateString('es', { day: 'numeric', month: 'short' });
-      return `${fromLabel} – ${toLabel}`;
     }
     return a.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
   });
@@ -174,7 +160,7 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
 
     this.activityService.ensureFamilies().subscribe();
 
-    if (mode && ['day', 'week', 'month'].includes(mode)) this.mode.set(mode);
+    if (mode && ['day', 'month'].includes(mode)) this.mode.set(mode);
     if (date) {
       const parsed = fromISODate(date);
       if (!Number.isNaN(parsed.getTime())) this.anchor.set(parsed);
@@ -188,9 +174,10 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
 
   // ── Navegación ──
 
-  setMode(mode: CalendarMode): void {
-    if (this.mode() === mode) return;
-    this.mode.set(mode);
+  /** Vuelve a la rejilla del mes desde el detalle de un día. */
+  backToMonth(): void {
+    if (this.mode() === 'month') return;
+    this.mode.set('month');
     this.syncUrl();
     this.load();
   }
@@ -198,7 +185,6 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
   shift(direction: -1 | 1): void {
     const a = this.anchor();
     if (this.mode() === 'month') this.anchor.set(addMonths(a, direction));
-    else if (this.mode() === 'week') this.anchor.set(addDays(a, 7 * direction));
     else this.anchor.set(addDays(a, direction));
     this.syncUrl();
     this.load();
@@ -253,10 +239,8 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
 
   private loadRange(): void {
     const a = this.anchor();
-    const [from, to] =
-      this.mode() === 'month'
-        ? [startOfMonth(a), endOfMonth(a)]
-        : [startOfWeek(a), addDays(startOfWeek(a), 6)];
+    const from = startOfMonth(a);
+    const to = endOfMonth(a);
 
     this.foodService.getSummary(toISODate(from), toISODate(to)).subscribe({
       next: (res) => {
@@ -342,14 +326,6 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
 
   onPhotoError(log: FoodLog): void {
     log.photo_url = null;
-  }
-
-  barHeight(cell: DayCell): number {
-    return cell.calories ? Math.max((cell.calories / this.weekPeak()) * 100, 4) : 0;
-  }
-
-  goalLinePosition(): number {
-    return (this.goal / this.weekPeak()) * 100;
   }
 
   // ── Borrado desde el detalle del día ──

@@ -277,44 +277,6 @@ body {
   &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
 
-/* ─── CONTROL SEGMENTADO ─── */
-.mode-switch {
-  display: flex;
-  gap: 4px;
-  margin: 12px 16px 0;
-  padding: 4px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-.mode-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 36px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-
-  mat-icon { font-size: 17px; height: 17px; width: 17px; }
-
-  &.selected {
-    background: var(--primary-subtle);
-    color: var(--primary-dark);
-  }
-}
-
-body.dark-theme .mode-btn.selected { color: var(--primary); }
-
 /* ─── NAVEGADOR DE PERIODO ─── */
 .period-nav {
   display: flex;

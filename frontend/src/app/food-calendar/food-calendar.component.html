@@ -11,31 +11,28 @@
     <app-theme-toggle />
   </header>
 
-  <!-- ── Selector de modo ── -->
-  <div class="mode-switch" role="group" aria-label="Vista del calendario">
-    @for (m of modes; track m.value) {
-      <button class="mode-btn" type="button"
-              [class.selected]="mode() === m.value"
-              [attr.aria-pressed]="mode() === m.value"
-              (click)="setMode(m.value)">
-        <mat-icon>{{ m.icon }}</mat-icon>
-        {{ m.label }}
-      </button>
-    }
-  </div>
+  <!-- ── Volver al mes desde el detalle de un día ── -->
+  @if (mode() === 'day') {
+    <button class="back-to-month" type="button" (click)="backToMonth()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver al mes
+    </button>
+  }
 
   <!-- ── Navegación del periodo ── -->
   <div class="period-nav">
-    <button class="nav-arrow" type="button" (click)="shift(-1)" aria-label="Periodo anterior">
+    <button class="nav-arrow" type="button" (click)="shift(-1)"
+            [attr.aria-label]="mode() === 'month' ? 'Mes anterior' : 'Día anterior'">
       <mat-icon>chevron_left</mat-icon>
     </button>
     <span class="period-label">{{ periodLabel() | titlecase }}</span>
-    <button class="nav-arrow" type="button" (click)="shift(1)" aria-label="Periodo siguiente">
+    <button class="nav-arrow" type="button" (click)="shift(1)"
+            [attr.aria-label]="mode() === 'month' ? 'Mes siguiente' : 'Día siguiente'">
       <mat-icon>chevron_right</mat-icon>
     </button>
   </div>
 
-  @if (!isToday() || mode() !== 'day') {
+  @if (showTodayJump()) {
     <button class="today-jump" type="button" (click)="goToToday()">
       <mat-icon>my_location</mat-icon>
       Ir a hoy
@@ -104,59 +101,6 @@
             </span>
           }
         </div>
-      }
-
-      <ng-container *ngTemplateOutlet="statsBlock" />
-    } @else if (mode() === 'week') {
-      <!-- ═══ SEMANA ═══ -->
-      <div class="card chart-card">
-        <div class="chart" [style.--goal-pos.%]="goalLinePosition()">
-          <span class="goal-line" [attr.data-label]="goal + ' kcal'"></span>
-          @for (cell of week(); track trackCell($index, cell)) {
-            <button class="chart-col" type="button" (click)="openDay(cell)"
-                    [attr.aria-label]="(cell.date | date:'EEEE') + ': ' + cell.calories + ' kcal'">
-              <span class="chart-bar-wrap">
-                <span class="chart-bar" [class.over]="cell.over" [class.today]="cell.isToday"
-                      [style.height.%]="barHeight(cell)"></span>
-              </span>
-              <span class="chart-value">{{ cell.calories ? (cell.calories | number:'1.0-0') : '–' }}</span>
-              <span class="chart-day" [class.today]="cell.isToday">
-                {{ cell.date | date:'EEEEE' | titlecase }}
-              </span>
-            </button>
-          }
-        </div>
-      </div>
-
-      <div class="section-header">
-        <span class="section-label">Detalle por día</span>
-      </div>
-
-      @for (cell of week(); track trackCell($index, cell)) {
-        <button class="day-row card" type="button" (click)="openDay(cell)"
-                [class.today]="cell.isToday">
-          <span class="day-row-date">
-            <span class="day-row-weekday">{{ cell.date | date:'EEE' | titlecase }}</span>
-            <span class="day-row-num">{{ cell.date | date:'d' }}</span>
-          </span>
-          <span class="day-row-body">
-            @if (cell.meals) {
-              <span class="day-row-kcal" [class.over]="cell.over">
-                {{ cell.calories | number:'1.0-0' }} kcal
-              </span>
-              <span class="progress-track">
-                <span class="progress-fill" [class.over]="cell.over"
-                      [style.width.%]="cell.percent"></span>
-              </span>
-              <span class="day-row-meals">
-                {{ cell.meals }} {{ cell.meals === 1 ? 'comida' : 'comidas' }}
-              </span>
-            } @else {
-              <span class="day-row-empty">Sin registros</span>
-            }
-          </span>
-          <mat-icon class="day-row-chevron">chevron_right</mat-icon>
-        </button>
       }
 
       <ng-container *ngTemplateOutlet="statsBlock" />
