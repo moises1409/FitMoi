@@ -169,6 +169,16 @@ reconstruye la biblioteca desde los registros (idempotente).
 - **En producción (Railway) es OBLIGATORIO** poner `APP_ACCESS_TOKEN` y
   `COOKIE_SECURE=1`: sin candado, cualquiera con la URL gasta la clave de
   Anthropic vía `/analyze`.
+- **PWA + token recordado (móvil)**: la app es instalable ("Añadir a pantalla de
+  inicio") vía `frontend/src/manifest.webmanifest` + `apple-touch-icon`. Al
+  instalarla, iOS usa un almacén de cookies APARTE que puede vaciarse entre
+  lanzamientos, así que `AuthService` guarda el token en `localStorage` (persiste
+  en la PWA instalada) y, si al arrancar la cookie se ha perdido, reentra EN
+  SILENCIO. Compromiso asumido: el token en `localStorage` es legible por JS (a
+  diferencia de la cookie httponly); aceptable en app personal de un solo usuario
+  en su propio móvil. `logout()` lo borra. Iconos en `assets/icons/` (regenerar
+  con `scripts`/PIL si cambia la marca); el `.webmanifest` va como asset en
+  `angular.json`.
 
 ## Decisiones de diseño (no deducibles del código)
 
