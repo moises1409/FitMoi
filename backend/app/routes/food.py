@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, request, jsonify, send_from_directory, current_app
 from sqlalchemy import text
+from werkzeug.utils import secure_filename
 
 from .. import db
 from ..models.food_log import FoodLog
@@ -590,3 +591,25 @@ def serve_upload(filename):
     return send_from_directory(
         current_app.config['UPLOAD_FOLDER_ABS'], filename, max_age=60 * 60 * 24 * 30
     )
+
+
+@food_bp.route('/restore-upload', methods=['POST'])
+def restore_upload():
+    """Sube una foto conservando su nombre original, para restaurar en el volumen
+    las imágenes de una migración. Doble candado: exige el token de la API (lo
+    cubre el before_request) Y el flag ENABLE_PHOTO_RESTORE. Deja el flag sin
+    poner (o bórralo) cuando termines la restauración; así queda inerte."""
+    if os.environ.get('ENABLE_PHOTO_RESTORE', '').strip().lower() not in {'1', 'true', 'yes', 'on'}:
+        return jsonify({'error': 'No disponible'}), 404
+
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'error': 'Falta el fichero'}), 400
+
+    name = secure_filename(os.path.basename(file.filename))
+    if not name or not name.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+        return jsonify({'error': 'Nombre de fichero inválido'}), 400
+
+    dest = os.path.join(current_app.config['UPLOAD_FOLDER_ABS'], name)
+    file.save(dest)
+    return jsonify({'ok': True, 'saved': name})
