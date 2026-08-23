@@ -101,6 +101,18 @@ body.dark-theme .day-cell.today .day-number { color: var(--primary); }
   line-height: 1;
 }
 
+/* Calorías gastadas en la celda del mes, junto a las consumidas. */
+.day-burn {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  mat-icon { font-size: 9px; height: 9px; width: 9px; }
+}
+
 /* ── Resumen del periodo ── */
 .stats-note {
   display: flex;
@@ -124,6 +136,57 @@ body.dark-theme .day-cell.today .day-number { color: var(--primary); }
 }
 
 body.dark-theme .add-to-day { color: var(--primary); }
+
+/* ── Gasto energético del día ── */
+.energy-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.energy-flame { color: var(--accent); font-size: 26px; height: 26px; width: 26px; flex-shrink: 0; }
+
+.energy-figures { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.energy-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  small { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+}
+
+.energy-source {
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.energy-vs {
+  font-size: 12px;
+  color: var(--text-muted);
+  strong { font-weight: 700; }
+  .deficit { color: var(--primary-dark); }
+  .surplus { color: #E5622E; }
+}
+
+body.dark-theme .energy-vs .deficit { color: var(--primary); }
+
+.energy-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+  mat-icon { color: var(--accent); font-size: 22px; height: 22px; width: 22px; flex-shrink: 0; opacity: 0.7; }
+}
 
 /* ── Puntos de actividad en la celda del mes ── */
 .day-marks {

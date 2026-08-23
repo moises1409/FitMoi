@@ -31,17 +31,19 @@ def create_app():
     app.config['UPLOAD_FOLDER_ABS'] = upload_dir
 
     from .models import (  # noqa: F401
-        activity, food_log, food_template, user_profile, weight_entry
+        activity, energy_expenditure, food_log, food_template, user_profile, weight_entry
     )
 
     from .routes.food import food_bp
     from .routes.library import library_bp
     from .routes.profile import profile_bp
     from .routes.activity import activity_bp
+    from .routes.energy import energy_bp
     app.register_blueprint(food_bp, url_prefix='/api/food')
     app.register_blueprint(library_bp, url_prefix='/api/library')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(activity_bp, url_prefix='/api/activities')
+    app.register_blueprint(energy_bp, url_prefix='/api/energy')
 
     # Candado de acceso (antes que las rutas queden expuestas). Opt-in por
     # APP_ACCESS_TOKEN; sin token no hace nada. Ver app/auth.py.

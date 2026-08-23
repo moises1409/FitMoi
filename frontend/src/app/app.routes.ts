@@ -62,6 +62,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./activity-form/activity-form.component').then(m => m.ActivityFormComponent),
   },
+  {
+    path: 'energy',
+    title: 'Calorías gastadas · FitMoi',
+    canActivate: [authGuard],
+    loadComponent: () => import('./energy-form/energy-form.component').then(m => m.EnergyFormComponent),
+  },
   // Rutas antiguas: la cesta se sustituyó por /confirm, /history y /log por /calendar
   { path: 'analyze', redirectTo: 'confirm' },
   { path: 'basket', redirectTo: 'confirm' },

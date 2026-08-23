@@ -198,3 +198,12 @@ body.dark-theme .freq-kcal { color: var(--primary); }
 
   &:hover { border-color: var(--primary); color: var(--text); }
 }
+
+/* El gasto del día: mismo formato que actividad, con el naranja del fuego para
+ * distinguirlo de un vistazo. */
+.energy-action {
+  margin-top: 8px;
+
+  > mat-icon:first-of-type { color: var(--accent); }
+  &:hover { border-color: var(--accent); }
+}

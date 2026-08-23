@@ -164,6 +164,8 @@ export interface DayResponse {
   targets: import('./profile.model').DailyTargets | null;
   activities: import('./activity.model').Activity[];
   activity_totals: import('./activity.model').ActivityTotals;
+  /** Gasto energético del día (calorías gastadas); null si no se ha registrado. */
+  energy: import('./energy.model').EnergyEntry | null;
 }
 
 export type TodayResponse = DayResponse;
@@ -194,6 +196,8 @@ export interface SummaryResponse {
   activity_families: import('./activity.model').ActivityFamily[];
   /** Familias con actividad por día (YYYY-MM-DD), para los puntos del mes. */
   activities_by_day: Record<string, import('./activity.model').DayActivityMark[]>;
+  /** Calorías gastadas por día (YYYY-MM-DD), para pintarlas junto a lo consumido. */
+  energy_by_day: Record<string, number>;
   from: string;
   to: string;
   today: string;

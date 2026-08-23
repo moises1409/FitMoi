@@ -52,6 +52,12 @@
       <mat-icon class="chevron">chevron_right</mat-icon>
     </a>
 
+    <a class="activity-action energy-action" routerLink="/energy" [queryParams]="dateParams">
+      <mat-icon>local_fire_department</mat-icon>
+      <span>Calorías gastadas en el día</span>
+      <mat-icon class="chevron">chevron_right</mat-icon>
+    </a>
+
     @if (loading()) {
       <div class="skeleton-list">
         <div class="skeleton-item"></div>
