@@ -1,0 +1,251 @@
+<div class="page">
+
+  <header class="top-bar">
+    <div class="top-bar-icon">
+      <mat-icon>insights</mat-icon>
+    </div>
+    <div style="flex:1">
+      <div class="top-bar-title">Resumen semanal</div>
+      <div class="top-bar-sub">Tu semana en nutrición y actividad</div>
+    </div>
+    <app-theme-toggle />
+  </header>
+
+  <!-- ── Navegación de semana ── -->
+  <div class="period-nav">
+    <button class="nav-arrow" type="button" (click)="shiftWeek(-1)" aria-label="Semana anterior">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="period-label">
+      @if (data(); as d) {
+        {{ d.week.week_start | date:'d' }}–{{ d.week.week_end | date:'d MMM' }}
+      } @else { Semana }
+    </span>
+    <button class="nav-arrow" type="button" (click)="shiftWeek(1)"
+            [disabled]="!canGoNext()" aria-label="Semana siguiente">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  @if (!isCurrentWeek()) {
+    <button class="today-jump" type="button" (click)="goToCurrentWeek()">
+      <mat-icon>my_location</mat-icon>
+      Semana actual
+    </button>
+  }
+
+  <div class="content">
+
+    @if (loading()) {
+      <div class="skeleton-card"></div>
+      <div class="skeleton-list">
+        <div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+      </div>
+    } @else if (data()) {
+      <!-- El `as` solo se permite en el @if primario; se alía dentro con un @if. -->
+      @if (data(); as d) {
+
+      <!-- ═══ CIFRAS DE LA SEMANA ═══ -->
+      <div class="stats-card card">
+        <div class="stat">
+          <span class="stat-value">{{ d.metrics.nutrition.avg_calories | number:'1.0-0' }}</span>
+          <span class="stat-label">kcal/día</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ d.metrics.nutrition.days_logged }}</span>
+          <span class="stat-label">de 7 días</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ d.metrics.activity.sessions }}</span>
+          <span class="stat-label">sesiones</span>
+        </div>
+      </div>
+
+      <!-- Macros medios -->
+      @if (d.metrics.nutrition.days_logged) {
+        <div class="macro-line">
+          <span class="macro-pill protein">P {{ d.metrics.nutrition.avg_proteins | number:'1.0-0' }}g</span>
+          <span class="macro-pill carbs">C {{ d.metrics.nutrition.avg_carbs | number:'1.0-0' }}g</span>
+          <span class="macro-pill fat">G {{ d.metrics.nutrition.avg_fats | number:'1.0-0' }}g</span>
+          <span class="macro-pill fiber">F {{ d.metrics.nutrition.avg_fiber | number:'1.0-0' }}g</span>
+        </div>
+      }
+
+      <!-- Adherencia a objetivos -->
+      @if (d.metrics.nutrition.adherence; as ad) {
+        <div class="card adherence-card">
+          <div class="adh-row">
+            <mat-icon>flag</mat-icon>
+            <span>
+              Media <strong>{{ ad.avg_calories_vs_target_pct }}%</strong> del objetivo
+              ({{ ad.calories_target | number:'1.0-0' }} kcal)
+            </span>
+          </div>
+          <div class="adh-row">
+            <mat-icon>check_circle</mat-icon>
+            <span><strong>{{ ad.days_within_target }}</strong> días en objetivo ·
+              proteína cumplida <strong>{{ ad.days_meeting_protein }}</strong> días</span>
+          </div>
+        </div>
+      }
+
+      <!-- Actividad / peso / gasto -->
+      <div class="mini-grid">
+        <div class="mini-card card">
+          <span class="mini-label">Actividad</span>
+          <span class="mini-value">{{ d.metrics.activity.minutes }} min</span>
+          <span class="mini-sub">
+            {{ d.metrics.activity.days_active }} días activos
+            @if (d.metrics.activity.training_days_target) {
+              / {{ d.metrics.activity.training_days_target }} objetivo
+            }
+          </span>
+        </div>
+        @if (d.metrics.weight.entries) {
+          <div class="mini-card card">
+            <span class="mini-label">Peso</span>
+            <span class="mini-value">{{ d.metrics.weight.end | number:'1.0-1' }} kg</span>
+            <span class="mini-sub">
+              @if (d.metrics.weight.delta !== null) {
+                <span [class.down]="d.metrics.weight.delta < 0" [class.up]="d.metrics.weight.delta > 0">
+                  {{ d.metrics.weight.delta > 0 ? '+' : '' }}{{ d.metrics.weight.delta | number:'1.0-1' }} kg
+                </span>
+              } @else { una pesada }
+            </span>
+          </div>
+        }
+        @if (d.metrics.energy.days_recorded) {
+          <div class="mini-card card">
+            <span class="mini-label">Gasto medio</span>
+            <span class="mini-value">{{ d.metrics.energy.avg_burned | number:'1.0-0' }}</span>
+            <span class="mini-sub">kcal · {{ d.metrics.energy.days_recorded }} días</span>
+          </div>
+        }
+      </div>
+
+      <!-- Familias de actividad -->
+      @if (d.metrics.activity.by_family.length) {
+        <div class="fam-chips">
+          @for (f of d.metrics.activity.by_family; track f.family) {
+            <span class="fam-chip">
+              <span class="fam-dot" [style.background]="f.color"></span>
+              {{ f.label }} · {{ f.sessions }}
+            </span>
+          }
+        </div>
+      }
+
+      <!-- ═══ NARRATIVA ═══ -->
+      @if (d.narrative; as n) {
+
+        <!-- Comparativa (tendencia) + resumen -->
+        <div class="card review-summary">
+          <span class="trend-badge" [class]="trendClass(n.comparativa.tendencia)">
+            <mat-icon>{{ tendenciaIcons[n.comparativa.tendencia] }}</mat-icon>
+            {{ tendenciaLabels[n.comparativa.tendencia] }}
+          </span>
+          <p class="verdict">{{ n.resumen }}</p>
+        </div>
+
+        <!-- Lo bueno / a mejorar -->
+        <div class="pros-cons">
+          @if (n.lo_bueno.length) {
+            <div class="pc-block good">
+              <p class="pc-title"><mat-icon>thumb_up</mat-icon> Lo bueno de la semana</p>
+              <ul>
+                @for (item of n.lo_bueno; track $index) { <li>{{ item }}</li> }
+              </ul>
+            </div>
+          }
+          @if (n.a_mejorar.length) {
+            <div class="pc-block bad">
+              <p class="pc-title"><mat-icon>trending_up</mat-icon> Lo que se puede mejorar</p>
+              <ul>
+                @for (item of n.a_mejorar; track $index) { <li>{{ item }}</li> }
+              </ul>
+            </div>
+          }
+        </div>
+
+        <!-- Comparativa detallada -->
+        @if (n.comparativa.detalle) {
+          <div class="section-header">
+            <span class="section-label">Frente a la semana anterior</span>
+          </div>
+          <div class="card">
+            <p class="verdict">{{ n.comparativa.detalle }}</p>
+            @if (n.comparativa.factores.length) {
+              <div class="factor-list">
+                @for (f of n.comparativa.factores; track $index) {
+                  <span class="factor-chip">{{ f }}</span>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Recomendaciones -->
+        @if (n.recomendaciones.length) {
+          <div class="section-header">
+            <span class="section-label">Para la próxima semana</span>
+          </div>
+          @for (r of n.recomendaciones; track $index) {
+            <p class="tip"><mat-icon>lightbulb</mat-icon> {{ r }}</p>
+          }
+        }
+
+        <div class="meta-line">
+          @if (d.generated_at) { Generado el {{ d.generated_at | date:'d MMM, HH:mm' }} }
+          <button class="regen-btn" type="button" (click)="generate()" [disabled]="generating()">
+            <mat-icon>{{ generating() ? 'hourglass_top' : 'refresh' }}</mat-icon>
+            {{ generating() ? 'Generando...' : 'Regenerar' }}
+          </button>
+        </div>
+
+      }
+
+      @if (!d.narrative) {
+        <!-- Sin narrativa aún -->
+        <div class="pending-card card">
+          <mat-icon>{{ d.is_current ? 'hourglass_empty' : 'auto_awesome' }}</mat-icon>
+          @if (d.is_current) {
+            <p>La semana aún no ha terminado. Esto es una vista previa; el resumen
+              completo se genera al cerrarse la semana.</p>
+          } @else {
+            <p>Todavía no hay un resumen redactado para esta semana.</p>
+          }
+          @if (d.can_generate) {
+            <button class="btn-primary" type="button" (click)="generate()" [disabled]="generating()">
+              <mat-icon>{{ generating() ? 'hourglass_top' : 'auto_awesome' }}</mat-icon>
+              {{ generating() ? 'Generando...' : 'Generar resumen ahora' }}
+            </button>
+          }
+        </div>
+      }
+
+      <!-- ═══ SEMANAS ANTERIORES ═══ -->
+      @if (history().length) {
+        <div class="section-header">
+          <span class="section-label">Semanas anteriores</span>
+        </div>
+        <div class="wk-list">
+          @for (w of history(); track trackWeek($index, w)) {
+            <button class="wk-row card" type="button" (click)="openWeek(w)">
+              <span class="wk-dates">{{ w.week_start | date:'d' }}–{{ w.week_end | date:'d MMM' }}</span>
+              <span class="wk-trend" [class]="trendClass(w.tendencia)">
+                <mat-icon>{{ tendenciaIcons[w.tendencia] }}</mat-icon>
+              </span>
+              <span class="wk-stats">
+                {{ w.avg_calories | number:'1.0-0' }} kcal · {{ w.sessions }} ses.
+              </span>
+              <mat-icon class="wk-chevron">chevron_right</mat-icon>
+            </button>
+          }
+        </div>
+      }
+
+      }
+    }
+  </div>
+</div>

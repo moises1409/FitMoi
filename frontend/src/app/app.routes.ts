@@ -45,6 +45,12 @@ export const routes: Routes = [
     loadComponent: () => import('./food-calendar/food-calendar.component').then(m => m.FoodCalendarComponent),
   },
   {
+    path: 'review',
+    title: 'Resumen semanal · FitMoi',
+    canActivate: [authGuard],
+    loadComponent: () => import('./weekly-review/weekly-review.component').then(m => m.WeeklyReviewComponent),
+  },
+  {
     path: 'profile',
     title: 'Mi perfil · FitMoi',
     canActivate: [authGuard],
