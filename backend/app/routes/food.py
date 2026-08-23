@@ -13,7 +13,9 @@ from werkzeug.utils import secure_filename
 from .. import db
 from ..models.food_log import FoodLog
 from ..models.food_template import FoodTemplate
-from ..services import activity_service, library_service, profile_service, targets_service
+from ..services import (
+    activity_service, energy_service, library_service, profile_service, targets_service,
+)
 from ..services.claude_service import AnalysisError, analyze_food_images, analyze_food_text
 from ..services.image_service import UnsupportedImageError, normalize_image
 from ..services.library_service import MACRO_KEYS
@@ -440,6 +442,7 @@ def _day_payload(day: date) -> dict:
     )
 
     actividades = activity_service.for_day(day_start, day_end)
+    gasto = energy_service.for_day(day)
 
     items = [l.to_dict() for l in logs]
     totals = {
@@ -461,6 +464,10 @@ def _day_payload(day: date) -> dict:
         'targets': _daily_targets(),
         'activities': [a.to_dict() for a in actividades],
         'activity_totals': activity_service.totals(actividades),
+        # Gasto energético del día (manual hoy, Whoop en el futuro). Es un valor
+        # único por día, no la suma de las actividades: se muestra junto a lo
+        # consumido, pero NO se resta del objetivo (que ya incluye actividad).
+        'energy': gasto.to_dict() if gasto else None,
     }
 
 
@@ -545,6 +552,11 @@ def get_summary():
         'activity_families': activity_service.FAMILIES,
         'activities_by_day': activity_service.families_by_day(
             window_start, window_end, current_app.config['APP_TIMEZONE']
+        ),
+        # Calorías gastadas por día natural, para pintarlas junto a las
+        # consumidas en la rejilla del mes.
+        'energy_by_day': energy_service.by_day(
+            start_day, end_day, current_app.config['APP_TIMEZONE']
         ),
         'from': start_day.isoformat(),
         'to': end_day.isoformat(),

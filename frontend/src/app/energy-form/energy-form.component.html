@@ -1,0 +1,63 @@
+<div class="page">
+
+  <header class="top-bar">
+    <button class="icon-btn" type="button" (click)="cancel()" aria-label="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div style="flex:1">
+      <div class="top-bar-title">
+        {{ existingId() ? 'Editar gasto' : 'Calorías gastadas' }}
+      </div>
+      <div class="top-bar-sub">El gasto energético del día</div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <p class="target-banner">
+      <mat-icon>local_fire_department</mat-icon>
+      Gasto de <strong>{{ dayLabel }}</strong>
+    </p>
+
+    @if (fromWhoop()) {
+      <p class="whoop-note">
+        <mat-icon>watch</mat-icon>
+        Este dato lo trajo Whoop. Si lo editas a mano, una próxima
+        sincronización podría sobrescribirlo.
+      </p>
+    }
+
+    <!-- ── Cuánto ── -->
+    <label class="field-label" for="e-cal">¿Cuántas calorías has gastado?</label>
+    <input id="e-cal" class="field-input" type="number" inputmode="numeric"
+           min="0" max="20000" [(ngModel)]="calories" placeholder="Ej: 2600">
+    <p class="field-hint">
+      Es el gasto total del día, no el de una sesión suelta. Míralo en tu
+      pulsera o báscula inteligente; en el futuro lo rellenará Whoop.
+    </p>
+
+    <!-- ── Comentarios ── -->
+    <label class="field-label mt-12" for="e-notes">Comentarios <small>(opcional)</small></label>
+    <textarea id="e-notes" class="field-input" rows="3" maxlength="1000"
+              [(ngModel)]="note"
+              placeholder="Ej: dato de la báscula Withings al despertar"></textarea>
+
+    <button class="btn-primary mt-16" type="button" (click)="save()" [disabled]="!canSave">
+      <mat-icon>{{ saving() ? 'hourglass_top' : 'check' }}</mat-icon>
+      {{ saving() ? 'Guardando...' : existingId() ? 'Guardar cambios' : 'Guardar gasto' }}
+    </button>
+
+    @if (existingId()) {
+      <button class="btn-danger mt-8" type="button" (click)="remove()" [disabled]="deleting()">
+        <mat-icon>delete_outline</mat-icon>
+        {{ deleting() ? 'Eliminando...' : 'Eliminar gasto del día' }}
+      </button>
+    }
+
+    <p class="calories-note">
+      El gasto es informativo: se muestra junto a lo que consumes, pero no se
+      resta de tu objetivo diario, que ya cuenta con que te mueves.
+    </p>
+
+  </div>
+</div>

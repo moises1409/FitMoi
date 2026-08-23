@@ -7,6 +7,7 @@ import { FoodService } from '../services/food.service';
 import { ActivityService } from '../services/activity.service';
 import { DailyTargets } from '../models/profile.model';
 import { Activity, ActivityFamily, DayActivityMark, FEELING_LABELS } from '../models/activity.model';
+import { EnergyEntry } from '../models/energy.model';
 import { ThemeToggleComponent } from '../shared/theme-toggle.component';
 import { ActivityListComponent } from '../shared/activity-list.component';
 import {
@@ -45,6 +46,8 @@ export interface DayCell {
   isSelected: boolean;
   calories: number;
   meals: number;
+  /** Calorías gastadas ese día (0 si no se ha registrado). */
+  burned: number;
   /** Familias con actividad ese día, para los puntos. */
   marks: DayActivityMark[];
   percent: number;
@@ -99,8 +102,12 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
   dayActivities = signal<Activity[]>([]);
   readonly families = this.activityService.families;
   private marksByDay = signal<Record<string, DayActivityMark[]>>({});
+  /** Calorías gastadas por día del rango, para la rejilla del mes. */
+  private energyByDay = signal<Record<string, number>>({});
   readonly feelingLabels = FEELING_LABELS;
   dayTotals = signal<Totals>(EMPTY_TOTALS);
+  /** Gasto energético del día abierto (calorías gastadas); null si no hay. */
+  dayEnergy = signal<EnergyEntry | null>(null);
 
   pendingDeleteId = signal<number | null>(null);
   private pendingTimer?: ReturnType<typeof setTimeout>;
@@ -139,6 +146,14 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
   );
 
   readonly dayOver = computed(() => this.dayTotals().calories > this.goal);
+
+  /** Calorías gastadas del día abierto (0 si no se han registrado). */
+  readonly dayBurned = computed(() => this.dayEnergy()?.calories ?? 0);
+
+  /** Balance informativo consumido − gastado. Solo se muestra si hay gasto.
+   *  Positivo = superávit (se comió más de lo que se gastó); negativo = déficit. */
+  readonly dayBalance = computed(() => this.dayTotals().calories - this.dayBurned());
+  readonly dayBalanceAbs = computed(() => Math.abs(this.dayBalance()));
 
   /** Objetivo de un macro, si el perfil da para calcularlo. */
   targetOf(key: 'proteins' | 'carbs' | 'fats' | 'fiber'): number | null {
@@ -225,6 +240,7 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.dayLogs.set(res.items);
         this.dayActivities.set(res.activities ?? []);
+        this.dayEnergy.set(res.energy ?? null);
         this.dayTotals.set(res.totals);
         this.targets.set(res.targets);
         if (res.targets) this.goal = res.targets.calories;
@@ -246,6 +262,7 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.summary.set(new Map(res.days.map((d) => [d.date, d])));
         this.marksByDay.set(res.activities_by_day ?? {});
+        this.energyByDay.set(res.energy_by_day ?? {});
         this.stats.set(res.stats);
         this.targets.set(res.targets);
         if (res.targets) this.goal = res.targets.calories;
@@ -272,6 +289,7 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
       isSelected: isSameDay(date, this.anchor()),
       calories,
       meals: entry?.meals ?? 0,
+      burned: this.energyByDay()[iso] ?? 0,
       marks: this.marksByDay()[iso] ?? [],
       percent: Math.min((calories / this.goal) * 100, 100),
       over: calories > this.goal,

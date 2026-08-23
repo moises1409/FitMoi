@@ -1,0 +1,68 @@
+/* .content .field-* .btn-primary .icon-btn .top-bar .mt-* -> styles.scss */
+
+.target-banner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--text);
+  font-size: 13px;
+
+  mat-icon { color: var(--accent); font-size: 17px; height: 17px; width: 17px; flex-shrink: 0; }
+  strong { font-weight: 700; text-transform: capitalize; }
+}
+
+.whoop-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+
+  mat-icon { color: var(--primary); font-size: 16px; height: 16px; width: 16px; flex-shrink: 0; margin-top: 1px; }
+}
+
+.field-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
+.btn-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 44px;
+  border: 1.5px solid var(--danger, #dc2626);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--danger, #dc2626);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  mat-icon { font-size: 18px; height: 18px; width: 18px; }
+  &:hover:not(:disabled) { background: color-mix(in srgb, var(--danger, #dc2626) 10%, transparent); }
+  &:disabled { opacity: 0.6; cursor: default; }
+}
+
+.calories-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  text-align: center;
+  padding: 0 8px;
+  margin-top: 14px;
+}

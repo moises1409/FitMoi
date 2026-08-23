@@ -62,10 +62,11 @@
               <button class="day-cell" type="button"
                       [class.outside]="!cell.inRange"
                       [class.today]="cell.isToday"
-                      [class.has-data]="cell.meals > 0"
+                      [class.has-data]="cell.meals > 0 || cell.burned > 0"
                       (click)="openDay(cell)"
                       [attr.aria-label]="(cell.date | date:'EEEE d MMMM')
-                        + (cell.meals ? ': ' + cell.calories + ' kilocalorías' : ': sin registros')">
+                        + (cell.meals ? ': ' + cell.calories + ' kilocalorías consumidas' : ': sin registros')
+                        + (cell.burned ? ', ' + cell.burned + ' gastadas' : '')">
                 <span class="day-number">{{ cell.date | date:'d' }}</span>
                 @if (cell.meals) {
                   <span class="day-bar-track">
@@ -75,6 +76,11 @@
                   <span class="day-kcal">{{ cell.calories | number:'1.0-0' }}</span>
                 } @else {
                   <span class="day-empty"></span>
+                }
+                @if (cell.burned) {
+                  <span class="day-burn">
+                    <mat-icon>local_fire_department</mat-icon>{{ cell.burned | number:'1.0-0' }}
+                  </span>
                 }
                 @if (cell.marks.length) {
                   <span class="day-marks">
@@ -159,6 +165,39 @@
           </div>
         }
       </div>
+
+      <!-- ── Gasto energético del día (calorías gastadas) ── -->
+      <div class="section-header">
+        <span class="section-label">Calorías gastadas</span>
+        <a class="add-to-day" routerLink="/energy" [queryParams]="{ date: anchorIso() }">
+          <mat-icon>{{ dayEnergy() ? 'edit' : 'add' }}</mat-icon>
+          {{ dayEnergy() ? 'Editar' : 'Registrar' }}
+        </a>
+      </div>
+
+      @if (dayEnergy(); as e) {
+        <div class="energy-card card">
+          <mat-icon class="energy-flame">local_fire_department</mat-icon>
+          <div class="energy-figures">
+            <span class="energy-val">
+              {{ e.calories | number:'1.0-0' }} <small>kcal gastadas</small>
+              @if (e.source === 'whoop') { <span class="energy-source">Whoop</span> }
+            </span>
+            <span class="energy-vs">
+              {{ dayTotals().calories | number:'1.0-0' }} consumidas ·
+              <strong [class.deficit]="dayBalance() < 0" [class.surplus]="dayBalance() > 0">
+                {{ dayBalance() < 0 ? 'Déficit' : 'Superávit' }}
+                {{ dayBalanceAbs() | number:'1.0-0' }} kcal
+              </strong>
+            </span>
+          </div>
+        </div>
+      } @else {
+        <div class="energy-empty card">
+          <mat-icon>local_fire_department</mat-icon>
+          <span>Añade las calorías gastadas para verlas junto a lo que consumes.</span>
+        </div>
+      }
 
       <div class="section-header">
         <span class="section-label">Actividad</span>
