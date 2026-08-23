@@ -121,7 +121,7 @@ export class LoginComponent {
     this.error.set('');
     this.auth.login(value).subscribe({
       next: () => {
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/log';
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/calendar';
         this.router.navigateByUrl(returnUrl);
       },
       error: (err) => {

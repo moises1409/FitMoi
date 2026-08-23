@@ -98,7 +98,7 @@ export class ActivityFormComponent implements OnInit {
       error: () => {
         this.loading.set(false);
         this.snack.open('No se pudo cargar la actividad', 'OK');
-        this.router.navigate(['/log']);
+        this.router.navigate(['/calendar']);
       },
     });
   }
@@ -174,15 +174,11 @@ export class ActivityFormComponent implements OnInit {
     });
   }
 
-  /** Vuelve al día al que se ha añadido, como hace el registro de comidas. */
+  /** Vuelve al detalle del día en el calendario, como hace el registro de comidas. */
   private goToDay(): void {
-    if (this.date === toISODate(new Date())) {
-      this.router.navigate(['/log']);
-    } else {
-      this.router.navigate(['/calendar'], {
-        queryParams: { mode: 'day', date: this.date },
-      });
-    }
+    this.router.navigate(['/calendar'], {
+      queryParams: { mode: 'day', date: this.date },
+    });
   }
 
   cancel(): void {

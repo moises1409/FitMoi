@@ -2,17 +2,11 @@ import { Routes } from '@angular/router';
 import { authGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'log', pathMatch: 'full' },
+  { path: '', redirectTo: 'calendar', pathMatch: 'full' },
   {
     path: 'login',
     title: 'Acceso · FitMoi',
     loadComponent: () => import('./login/login.component').then(m => m.LoginComponent),
-  },
-  {
-    path: 'log',
-    title: 'Hoy · FitMoi',
-    canActivate: [authGuard],
-    loadComponent: () => import('./food-log/food-log.component').then(m => m.FoodLogComponent),
   },
   {
     path: 'add',
@@ -68,9 +62,10 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./activity-form/activity-form.component').then(m => m.ActivityFormComponent),
   },
-  // Rutas antiguas: la cesta se sustituyó por /confirm, /history por /calendar
+  // Rutas antiguas: la cesta se sustituyó por /confirm, /history y /log por /calendar
   { path: 'analyze', redirectTo: 'confirm' },
   { path: 'basket', redirectTo: 'confirm' },
   { path: 'history', redirectTo: 'calendar' },
-  { path: '**', redirectTo: 'log' },
+  { path: 'log', redirectTo: 'calendar' },
+  { path: '**', redirectTo: 'calendar' },
 ];
