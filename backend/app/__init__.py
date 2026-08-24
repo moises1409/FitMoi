@@ -32,7 +32,7 @@ def create_app():
 
     from .models import (  # noqa: F401
         activity, energy_expenditure, food_log, food_template, user_profile,
-        weekly_review, weight_entry
+        weekly_review, weight_entry, whoop_token
     )
 
     from .routes.food import food_bp
@@ -41,12 +41,14 @@ def create_app():
     from .routes.activity import activity_bp
     from .routes.energy import energy_bp
     from .routes.review import review_bp
+    from .routes.whoop import whoop_bp
     app.register_blueprint(food_bp, url_prefix='/api/food')
     app.register_blueprint(library_bp, url_prefix='/api/library')
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(activity_bp, url_prefix='/api/activities')
     app.register_blueprint(energy_bp, url_prefix='/api/energy')
     app.register_blueprint(review_bp, url_prefix='/api/review')
+    app.register_blueprint(whoop_bp, url_prefix='/api/whoop')
 
     # Candado de acceso (antes que las rutas queden expuestas). Opt-in por
     # APP_ACCESS_TOKEN; sin token no hace nada. Ver app/auth.py.

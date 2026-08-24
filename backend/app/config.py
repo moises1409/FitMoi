@@ -30,6 +30,15 @@ class Config:
     # Zona horaria del usuario: determina que cuenta como "hoy" en la vista diaria.
     APP_TIMEZONE = os.environ.get('APP_TIMEZONE', 'Europe/Madrid')
 
+    # Whoop OAuth (esbozo). Vacio = integracion desactivada; /api/whoop/status lo
+    # refleja. Al rellenarlos (portal de developer de Whoop) se habilita el flujo.
+    # WHOOP_REDIRECT_URI debe COINCIDIR literal con la registrada en el portal;
+    # dejala vacia para derivarla de la peticion (vale en local y en produccion).
+    WHOOP_CLIENT_ID = os.environ.get('WHOOP_CLIENT_ID', '')
+    WHOOP_CLIENT_SECRET = os.environ.get('WHOOP_CLIENT_SECRET', '')
+    WHOOP_REDIRECT_URI = os.environ.get('WHOOP_REDIRECT_URI', '')
+    WHOOP_SCOPES = os.environ.get('WHOOP_SCOPES', '')
+
     # Carpeta del build de Angular a servir por Flask (mismo origen -> la cookie
     # del candado funciona sin CORS). Vacio en dev: el frontend lo sirve
     # `ng serve` aparte. En produccion apunta al dist copiado en la imagen.

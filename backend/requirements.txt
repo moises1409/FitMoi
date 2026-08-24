@@ -4,6 +4,7 @@ flask-cors==5.0.0
 flask-migrate==4.1.0
 psycopg2-binary==2.9.10
 anthropic==0.40.0
+httpx==0.28.1                        # cliente HTTP para OAuth de Whoop (ya lo trae anthropic)
 python-dotenv==1.0.1
 pillow==11.1.0
 pillow-heif==0.21.0
