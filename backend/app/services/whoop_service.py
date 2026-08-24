@@ -1,11 +1,10 @@
-"""Cliente OAuth de Whoop (esbozo).
+"""Cliente OAuth de Whoop.
 
-Estado: la mecánica OAuth (consentimiento → callback → intercambio de código →
-guardado y refresco del token) está implementada y lista para funcionar en
-cuanto haya `WHOOP_CLIENT_ID`/`WHOOP_CLIENT_SECRET`. La SINCRONIZACIÓN de
-workouts a la tabla `activities` queda esbozada en `sync_recent_workouts()`:
-el mapeo de campos está anotado pero desactivado hasta poder probarlo con datos
-reales de la pulsera (ver CLAUDE.md → "Pendiente: Integración con Whoop").
+Cubre el flujo completo: consentimiento → callback → intercambio de código →
+guardado y refresco del token, y la sincronización de workouts a la tabla
+`activities` (`sync_recent_workouts()`). Se activa en cuanto haya
+`WHOOP_CLIENT_ID`/`WHOOP_CLIENT_SECRET`; falta verificarlo contra la API real
+con la pulsera conectada.
 
 Whoop v2 (https://developer.whoop.com):
 - Autorización:  GET  {AUTH_BASE}/oauth/oauth2/auth
@@ -22,7 +21,9 @@ import httpx
 from flask import current_app
 
 from .. import db
+from ..models.activity import Activity
 from ..models.whoop_token import WhoopToken
+from . import activity_service
 
 AUTH_BASE = 'https://api.prod.whoop.com'
 API_BASE = 'https://api.prod.whoop.com/developer'
@@ -144,31 +145,158 @@ def _store(payload: dict, existing: WhoopToken | None = None) -> WhoopToken:
     return token
 
 
-# --- Paso 3 (esbozo): traer workouts y mapearlos a `activities` ---------------
+# --- Paso 3: traer workouts y mapearlos a `activities` -----------------------
 
-def sync_recent_workouts() -> int:
-    """PENDIENTE. Trae los workouts recientes y los vuelca en `activities`.
+# Un joule -> kcal. Whoop da el gasto en kilojulios; se convierte a kcal, que es
+# la unidad con la que trabaja el resto de la app.
+_KJ_TO_KCAL = 1.0 / 4.184
+_WORKOUT_PAGE = 25          # máximo por página que admite el endpoint
+_MAX_PAGES = 20             # tope de seguridad para no pasear la API sin fin
 
-    La tabla `activities` ya tiene las columnas para esto (source='whoop',
-    external_id=UUID del workout, calories, metrics con strain/pulso/zonas). El
-    mapeo sería, por cada workout de GET {API_BASE}/v2/activity/workout:
+# La v2 ya devuelve `sport_name` como texto; este mapa es solo una red por si un
+# registro viniera sin él (se usa el id numérico). classify() hace el resto.
+_SPORT_NAMES = {
+    -1: 'Actividad', 0: 'Running', 1: 'Cycling', 16: 'Baseball',
+    17: 'Basketball', 18: 'Rowing', 19: 'Fencing', 20: 'Field Hockey',
+    21: 'Football', 22: 'Golf', 24: 'Ice Hockey', 25: 'Lacrosse',
+    27: 'Rugby', 28: 'Sailing', 29: 'Skiing', 30: 'Soccer', 31: 'Softball',
+    32: 'Squash', 33: 'Swimming', 34: 'Tennis', 35: 'Track & Field',
+    36: 'Volleyball', 39: 'Boxing', 42: 'Dance', 43: 'Pilates', 44: 'Yoga',
+    45: 'Weightlifting', 47: 'Functional Fitness', 48: 'Hiking',
+    52: 'Spin', 62: 'HIIT', 63: 'Spinning', 66: 'Walking', 70: 'Meditation',
+    71: 'Martial Arts', 96: 'Pickleball', 97: 'Padel', 101: 'Climbing',
+}
 
-        Activity(
-            source='whoop',
-            external_id=w['id'],                     # dedup por unique
-            sport_name=<nombre del sport_id>,
-            activity_type=activity_service.family_of(...),
-            started_at=parse(w['start']),
-            duration_min=(parse(w['end']) - parse(w['start'])).minutes,
-            calories=w['score']['kilojoule'] / 4.184, # kJ -> kcal
-            metrics={strain, average_heart_rate, max_heart_rate, zone_durations},
-        )
 
-    Recordatorio (CLAUDE.md): las calorías de Whoop son el gasto real del día;
-    NO se restan del objetivo (ya incluye factor de actividad). Se deja
-    desactivado hasta poder probarlo con la pulsera conectada.
+def sync_recent_workouts(since: datetime | None = None) -> dict:
+    """Trae los workouts recientes de Whoop y los vuelca en `activities`.
+
+    Idempotente: cada workout se identifica por su UUID en `external_id` (unique),
+    así que reejecutar actualiza en vez de duplicar. Devuelve un resumen
+    {created, updated, seen}.
+
+    Recordatorio (CLAUDE.md): las calorías de Whoop son el gasto real del día y
+    NO se restan del objetivo (ya incluye factor de actividad); son informativas.
     """
-    raise NotImplementedError('Sincronización de workouts pendiente (fase 2).')
+    token = valid_access_token()
+    if token is None:
+        raise WhoopError('Whoop no está conectado.')
+
+    if since is None:
+        since = datetime.now(timezone.utc) - timedelta(days=30)
+
+    params = {
+        'start': _iso(since),
+        'end': _iso(datetime.now(timezone.utc)),
+        'limit': _WORKOUT_PAGE,
+    }
+
+    created = updated = seen = 0
+    with httpx.Client(base_url=API_BASE, timeout=_TIMEOUT) as client:
+        next_token = None
+        for _ in range(_MAX_PAGES):
+            page_params = dict(params)
+            if next_token:
+                page_params['nextToken'] = next_token
+            payload = _get(client, token, '/v2/activity/workout', page_params)
+
+            for record in payload.get('records', []):
+                seen += 1
+                outcome = _upsert_workout(record)
+                if outcome == 'created':
+                    created += 1
+                elif outcome == 'updated':
+                    updated += 1
+
+            next_token = payload.get('next_token')
+            if not next_token:
+                break
+
+    if created or updated:
+        db.session.commit()
+    return {'created': created, 'updated': updated, 'seen': seen}
+
+
+def _upsert_workout(record: dict) -> str:
+    """Crea o actualiza una `Activity` desde un workout de Whoop.
+
+    Devuelve 'created', 'updated' o 'skipped' (registro sin datos utilizables).
+    """
+    external_id = record.get('id')
+    start = _parse(record.get('start'))
+    if not external_id or start is None:
+        # started_at es NOT NULL y external_id es la clave de dedup: sin ellos el
+        # registro no es utilizable, se ignora en vez de romper el commit.
+        return 'skipped'
+
+    activity = (
+        db.session.query(Activity)
+        .filter_by(external_id=str(external_id))
+        .first()
+    )
+    is_new = activity is None
+    if is_new:
+        activity = Activity(source='whoop', external_id=str(external_id))
+        db.session.add(activity)
+
+    sport_name = record.get('sport_name') or _SPORT_NAMES.get(record.get('sport_id'), 'Entrenamiento')
+    activity.sport_name = str(sport_name)[:120]
+    activity.activity_type = activity_service.classify(activity.sport_name)
+
+    end = _parse(record.get('end'))
+    activity.started_at = start
+    if end:
+        activity.duration_min = max(0, round((end - start).total_seconds() / 60))
+
+    score = record.get('score') or {}
+    kilojoule = score.get('kilojoule')
+    activity.calories = round(kilojoule * _KJ_TO_KCAL, 1) if kilojoule is not None else None
+
+    # Lo exclusivo de la pulsera vive en metrics (no ensucia los registros manuales).
+    activity.metrics = {
+        'strain': score.get('strain'),
+        'average_heart_rate': score.get('average_heart_rate'),
+        'max_heart_rate': score.get('max_heart_rate'),
+        'distance_meter': score.get('distance_meter'),
+        'altitude_gain_meter': score.get('altitude_gain_meter'),
+        'percent_recorded': score.get('percent_recorded'),
+        'zone_durations': score.get('zone_duration') or score.get('zone_durations'),
+        'score_state': record.get('score_state'),
+    }
+    return 'created' if is_new else 'updated'
+
+
+def _get(client: httpx.Client, access_token: str, path: str, params: dict) -> dict:
+    headers = {'Authorization': f'Bearer {access_token}'}
+    try:
+        resp = client.get(path, params=params, headers=headers)
+    except httpx.HTTPError as exc:
+        raise WhoopError(f'No se pudo contactar con Whoop: {exc}') from exc
+    if resp.status_code == 401:
+        raise WhoopError('Whoop rechazó el token (401); reconecta la cuenta.')
+    if resp.status_code != 200:
+        raise WhoopError(f'Whoop devolvió {resp.status_code}: {resp.text[:200]}')
+    return resp.json()
+
+
+def _iso(when: datetime) -> str:
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return when.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+
+
+def _parse(value) -> datetime | None:
+    """Parsea un timestamp ISO de Whoop (con 'Z' o fracciones) a datetime aware."""
+    if not value:
+        return None
+    text = str(value).replace('Z', '+00:00')
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
 
 
 class WhoopError(Exception):

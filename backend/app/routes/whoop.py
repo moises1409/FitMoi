@@ -79,6 +79,22 @@ def callback():
     return redirect(f'{_FRONTEND_RETURN}?whoop=connected')
 
 
+@whoop_bp.route('/sync', methods=['POST'])
+def sync():
+    """Trae los workouts recientes de Whoop a la tabla de actividades.
+
+    Idempotente (dedup por external_id). Pensado para llamarlo desde la UI o un
+    trigger; devuelve cuántas sesiones se crearon/actualizaron.
+    """
+    if not whoop_service.is_connected():
+        return jsonify({'error': 'Whoop no está conectado.'}), 409
+    try:
+        result = whoop_service.sync_recent_workouts()
+    except WhoopError as exc:
+        return jsonify({'error': str(exc)}), 502
+    return jsonify(result)
+
+
 @whoop_bp.route('/disconnect', methods=['POST'])
 def disconnect():
     whoop_service.disconnect()
