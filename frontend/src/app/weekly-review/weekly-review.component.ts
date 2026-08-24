@@ -48,6 +48,12 @@ export class WeeklyReviewComponent implements OnInit {
     toISODate(this.monday()) === toISODate(startOfWeek(new Date())),
   );
 
+  /** Histórico sin la semana que se está viendo: ya se muestra arriba. */
+  readonly otherWeeks = computed(() => {
+    const shown = this.data()?.week.week_start;
+    return this.history().filter((w) => w.week_start !== shown);
+  });
+
   ngOnInit(): void {
     const iso = this.route.snapshot.queryParamMap.get('date');
     if (iso) this.anchor.set(fromISODate(iso));
