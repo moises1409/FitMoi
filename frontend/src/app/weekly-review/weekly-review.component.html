@@ -225,12 +225,12 @@
       }
 
       <!-- ═══ SEMANAS ANTERIORES ═══ -->
-      @if (history().length) {
+      @if (otherWeeks().length) {
         <div class="section-header">
           <span class="section-label">Semanas anteriores</span>
         </div>
         <div class="wk-list">
-          @for (w of history(); track trackWeek($index, w)) {
+          @for (w of otherWeeks(); track trackWeek($index, w)) {
             <button class="wk-row card" type="button" (click)="openWeek(w)">
               <span class="wk-dates">{{ w.week_start | date:'d' }}–{{ w.week_end | date:'d MMM' }}</span>
               <span class="wk-trend" [class]="trendClass(w.tendencia)">
