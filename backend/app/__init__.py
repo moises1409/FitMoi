@@ -57,6 +57,15 @@ def create_app():
     def health():
         return {'status': 'ok', 'service': 'fitmoi-api'}
 
+    # Política de privacidad: página pública y estática. Debe ser accesible SIN
+    # candado (el revisor de Whoop la abre sin login) y sin caer en el SPA de
+    # Angular, cuyo authGuard redirigiría a /login. El candado ya deja pasar todo
+    # lo que no empieza por /api/ (ver app/auth.py), y esta regla estática tiene
+    # prioridad sobre el catch-all <path:path> del frontend.
+    @app.route('/privacy')
+    def privacy():
+        return send_file(os.path.join(os.path.dirname(__file__), 'static_pages', 'privacy.html'))
+
     _register_frontend(app)
 
     return app

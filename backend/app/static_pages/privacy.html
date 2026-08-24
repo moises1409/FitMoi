@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index, follow">
+  <title>Política de Privacidad · FitMoi</title>
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --card: #ffffff;
+      --text: #1f2328;
+      --muted: #5b636b;
+      --border: #e4e6e9;
+      --accent: #6C4DE0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #16181c;
+        --card: #1e2126;
+        --text: #e8eaed;
+        --muted: #9aa2ab;
+        --border: #2c3037;
+        --accent: #9d86f0;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      padding: 2rem 1rem 4rem;
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 2.5rem;
+    }
+    h1 {
+      font-size: 1.7rem;
+      margin: 0 0 .35rem;
+    }
+    .updated {
+      color: var(--muted);
+      font-size: .9rem;
+      margin: 0 0 2rem;
+    }
+    h2 {
+      font-size: 1.15rem;
+      margin: 2rem 0 .6rem;
+      padding-top: .4rem;
+    }
+    a { color: var(--accent); }
+    ul { padding-left: 1.2rem; }
+    li { margin: .3rem 0; }
+    .lead {
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      margin: 0 0 1.5rem;
+    }
+    footer {
+      max-width: 720px;
+      margin: 1.5rem auto 0;
+      color: var(--muted);
+      font-size: .85rem;
+      text-align: center;
+    }
+    code {
+      background: color-mix(in srgb, var(--text) 8%, transparent);
+      padding: .1rem .35rem;
+      border-radius: 5px;
+      font-size: .9em;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Política de Privacidad de FitMoi</h1>
+    <p class="updated">Última actualización: 24 de agosto de 2026</p>
+
+    <p class="lead">
+      FitMoi es una aplicación <strong>personal y de un solo usuario</strong> de
+      seguimiento nutricional y de actividad física, desarrollada y utilizada por
+      su propio autor. No es un servicio comercial ni multiusuario: no hay
+      registro de terceros ni venta de datos.
+    </p>
+
+    <h2>1. Responsable</h2>
+    <p>
+      El responsable del tratamiento de los datos es el titular de la aplicación,
+      contactable en
+      <a href="mailto:moisesamselembenz@gmail.com">moisesamselembenz@gmail.com</a>.
+    </p>
+
+    <h2>2. Qué datos se tratan</h2>
+    <ul>
+      <li><strong>Perfil</strong>: datos que el usuario introduce (edad, sexo,
+        altura, peso, objetivo y nivel de actividad) para calcular objetivos
+        nutricionales.</li>
+      <li><strong>Comidas</strong>: fotos, descripciones de texto y los valores
+        nutricionales estimados a partir de ellas.</li>
+      <li><strong>Actividad física</strong>: sesiones registradas manualmente y,
+        cuando se conecta la cuenta de Whoop, los datos de entrenamiento que
+        FitMoi obtiene del API de Whoop.</li>
+    </ul>
+
+    <h2>3. Datos obtenidos de Whoop</h2>
+    <p>
+      Si el usuario conecta su cuenta de Whoop, FitMoi accede —con su
+      autorización explícita mediante OAuth— a sus datos de entrenamiento
+      (<em>workouts</em>): entre ellos la <strong>energía gastada (calorías)</strong>,
+      la duración, la frecuencia cardíaca y métricas asociadas al esfuerzo.
+    </p>
+    <ul>
+      <li>Estos datos se usan <strong>únicamente</strong> para calcular el gasto
+        energético diario dentro de FitMoi y complementar el seguimiento
+        nutricional del propio usuario.</li>
+      <li><strong>No se comparten con terceros</strong> ni se usan con fines
+        publicitarios o de perfilado.</li>
+      <li>Se almacenan en la base de datos privada de la aplicación (ver punto 5).</li>
+    </ul>
+
+    <h2>4. Análisis de comida con IA</h2>
+    <p>
+      Para estimar porciones, calorías y macronutrientes, las fotos y
+      descripciones de comida se envían al servicio de IA de
+      <strong>Anthropic (Claude)</strong>, que actúa como encargado del
+      tratamiento a estos únicos efectos. No se le envían datos de Whoop ni datos
+      identificativos del usuario.
+    </p>
+
+    <h2>5. Dónde se guardan los datos</h2>
+    <p>
+      Los datos se almacenan en una base de datos PostgreSQL gestionada y en el
+      almacenamiento de la propia infraestructura de despliegue (Railway). El
+      acceso a la aplicación está protegido por un token de acceso privado.
+    </p>
+
+    <h2>6. Conservación y borrado</h2>
+    <p>
+      Los datos se conservan mientras el usuario los mantenga en la aplicación.
+      Como titular único, el usuario puede eliminar sus registros en cualquier
+      momento desde la propia aplicación o solicitando su borrado en la dirección
+      de contacto.
+    </p>
+
+    <h2>7. Revocar el acceso a Whoop</h2>
+    <p>
+      El usuario puede revocar en cualquier momento el acceso de FitMoi a sus
+      datos de Whoop desde la configuración de aplicaciones de su cuenta de Whoop
+      (<a href="https://app.whoop.com" target="_blank" rel="noopener">app.whoop.com</a>).
+      Al revocarlo, FitMoi deja de sincronizar nuevos datos de entrenamiento.
+    </p>
+
+    <h2>8. Cesión a terceros</h2>
+    <p>
+      No se venden, alquilan ni ceden datos a terceros. Las únicas
+      comunicaciones de datos son las estrictamente necesarias para el
+      funcionamiento descrito: Anthropic (análisis de comida) y la
+      infraestructura de alojamiento.
+    </p>
+
+    <h2>9. Cambios en esta política</h2>
+    <p>
+      Esta política puede actualizarse. La fecha de la última revisión figura al
+      inicio del documento.
+    </p>
+
+    <h2>10. Contacto</h2>
+    <p>
+      Para cualquier cuestión sobre privacidad, escribe a
+      <a href="mailto:moisesamselembenz@gmail.com">moisesamselembenz@gmail.com</a>.
+    </p>
+  </main>
+  <footer>FitMoi — Política de Privacidad</footer>
+</body>
+</html>
