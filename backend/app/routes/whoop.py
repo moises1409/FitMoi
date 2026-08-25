@@ -16,6 +16,8 @@ la conexión: es justo lo que queremos.
 """
 
 import secrets
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import (
     Blueprint, current_app, jsonify, redirect, request, session, url_for,
@@ -81,18 +83,43 @@ def callback():
 
 @whoop_bp.route('/sync', methods=['POST'])
 def sync():
-    """Trae los workouts recientes de Whoop a la tabla de actividades.
+    """Trae los workouts de Whoop a la tabla de actividades.
 
-    Idempotente (dedup por external_id). Pensado para llamarlo desde la UI o un
-    trigger; devuelve cuántas sesiones se crearon/actualizaron.
+    Sin parámetros sincroniza los últimos 30 días. Con ?date=YYYY-MM-DD (o en el
+    cuerpo JSON) sincroniza solo ese día natural, en la zona horaria del usuario.
+    Idempotente (dedup por external_id); devuelve created/updated/seen.
     """
     if not whoop_service.is_connected():
         return jsonify({'error': 'Whoop no está conectado.'}), 409
+
+    data = request.get_json(silent=True) or {}
+    date_str = request.args.get('date') or data.get('date')
+    since = until = None
+    if date_str:
+        try:
+            since, until = _day_bounds(str(date_str))
+        except ValueError:
+            return jsonify({'error': 'Fecha inválida; usa YYYY-MM-DD.'}), 400
+
     try:
-        result = whoop_service.sync_recent_workouts()
+        result = whoop_service.sync_recent_workouts(since=since, until=until)
     except WhoopError as exc:
         return jsonify({'error': str(exc)}), 502
     return jsonify(result)
+
+
+def _day_bounds(date_str: str):
+    """Límites [inicio, fin) de un día natural YYYY-MM-DD en la zona del usuario."""
+    try:
+        day = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        raise ValueError('Fecha inválida')
+    try:
+        tz = ZoneInfo(current_app.config['APP_TIMEZONE'])
+    except (ZoneInfoNotFoundError, ValueError):
+        tz = ZoneInfo('UTC')
+    start = datetime(day.year, day.month, day.day, tzinfo=tz)
+    return start, start + timedelta(days=1)
 
 
 @whoop_bp.route('/disconnect', methods=['POST'])
