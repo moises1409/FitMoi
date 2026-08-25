@@ -16,6 +16,7 @@ genera aquí y la ruta lo guarda en la sesión de Flask para comprobarlo al volv
 """
 
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 from flask import current_app
@@ -23,7 +24,7 @@ from flask import current_app
 from .. import db
 from ..models.activity import Activity
 from ..models.whoop_token import WhoopToken
-from . import activity_service
+from . import activity_service, energy_service
 
 AUTH_BASE = 'https://api.prod.whoop.com'
 API_BASE = 'https://api.prod.whoop.com/developer'
@@ -225,6 +226,89 @@ def sync_recent_workouts(
     if created or updated:
         db.session.commit()
     return {'created': created, 'updated': updated, 'seen': seen}
+
+
+# --- Gasto energético total del día (ciclos de Whoop) ------------------------
+
+def _local_tz() -> ZoneInfo:
+    try:
+        return ZoneInfo(current_app.config['APP_TIMEZONE'])
+    except (ZoneInfoNotFoundError, ValueError, KeyError):
+        return ZoneInfo('UTC')
+
+
+def sync_daily_energy(
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict:
+    """Trae el gasto energético TOTAL de cada día y lo vuelca en
+    `energy_expenditures` (una fila por día natural, `source='whoop'`).
+
+    El gasto del día entero vive en el *ciclo* fisiológico de Whoop
+    (`/v2/cycle`, `score.kilojoule`), no en los workouts: los workouts son solo
+    las sesiones. Cada ciclo se asigna al día natural de su inicio en la zona
+    del usuario (`APP_TIMEZONE`).
+
+    Sin argumentos sincroniza los últimos `WHOOP_SYNC_DAYS` días (7 por defecto),
+    de modo que además de hoy repasa los días pasados por si alguno quedó sin
+    dato. Respeta las correcciones manuales (ver `energy_service.record_whoop`).
+
+    Devuelve {created, updated, skipped, seen}.
+    """
+    token = valid_access_token()
+    if token is None:
+        raise WhoopError('Whoop no está conectado.')
+
+    days = int(current_app.config.get('WHOOP_SYNC_DAYS', 7) or 7)
+    if since is None:
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+    if until is None:
+        until = datetime.now(timezone.utc)
+
+    tz = _local_tz()
+    params = {'start': _iso(since), 'end': _iso(until), 'limit': _WORKOUT_PAGE}
+
+    # Un día puede tener más de un ciclo en la ventana; nos quedamos con el mayor
+    # gasto de ese día (el ciclo completo, no un tramo parcial).
+    per_day: dict = {}
+    seen = 0
+    with httpx.Client(base_url=API_BASE, timeout=_TIMEOUT) as client:
+        next_token = None
+        for _ in range(_MAX_PAGES):
+            page_params = dict(params)
+            if next_token:
+                page_params['nextToken'] = next_token
+            payload = _get(client, token, '/v2/cycle', page_params)
+
+            for record in payload.get('records', []):
+                seen += 1
+                start = _parse(record.get('start'))
+                if start is None:
+                    continue
+                kilojoule = (record.get('score') or {}).get('kilojoule')
+                if kilojoule is None:
+                    continue
+                day = start.astimezone(tz).date()
+                kcal = round(kilojoule * _KJ_TO_KCAL, 1)
+                per_day[day] = max(per_day.get(day, 0.0), kcal)
+
+            next_token = payload.get('next_token')
+            if not next_token:
+                break
+
+    created = updated = skipped = 0
+    for day, kcal in per_day.items():
+        outcome = energy_service.record_whoop(kcal, day)
+        if outcome == 'created':
+            created += 1
+        elif outcome == 'updated':
+            updated += 1
+        elif outcome == 'skipped':
+            skipped += 1
+
+    if created or updated:
+        db.session.commit()
+    return {'created': created, 'updated': updated, 'skipped': skipped, 'seen': seen}
 
 
 def _upsert_workout(record: dict) -> str:
