@@ -172,10 +172,18 @@
       <!-- ── Gasto energético del día (calorías gastadas) ── -->
       <div class="section-header">
         <span class="section-label">Calorías gastadas</span>
-        <a class="add-to-day" routerLink="/energy" [queryParams]="{ date: anchorIso() }">
-          <mat-icon>{{ dayEnergy() ? 'edit' : 'add' }}</mat-icon>
-          {{ dayEnergy() ? 'Editar' : 'Registrar' }}
-        </a>
+        <div class="section-actions">
+          @if (whoopConnected()) {
+            <button type="button" class="add-to-day sync-whoop" (click)="syncWhoop()" [disabled]="syncingWhoop()">
+              <mat-icon [class.spin]="syncingWhoop()">sync</mat-icon>
+              {{ syncingWhoop() ? 'Sincronizando…' : 'Whoop' }}
+            </button>
+          }
+          <a class="add-to-day" routerLink="/energy" [queryParams]="{ date: anchorIso() }">
+            <mat-icon>{{ dayEnergy() ? 'edit' : 'add' }}</mat-icon>
+            {{ dayEnergy() ? 'Editar' : 'Registrar' }}
+          </a>
+        </div>
       </div>
 
       @if (dayEnergy(); as e) {
