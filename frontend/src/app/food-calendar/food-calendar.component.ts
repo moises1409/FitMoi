@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FoodService } from '../services/food.service';
 import { ActivityService } from '../services/activity.service';
+import { WhoopService } from '../services/whoop.service';
 import { DailyTargets } from '../models/profile.model';
 import { Activity, ActivityFamily, DayActivityMark, FEELING_LABELS } from '../models/activity.model';
 import { EnergyEntry } from '../models/energy.model';
@@ -79,6 +80,7 @@ const CONFIRM_WINDOW_MS = 4000;
 export class FoodCalendarComponent implements OnInit, OnDestroy {
   private foodService = inject(FoodService);
   private activityService = inject(ActivityService);
+  private whoop = inject(WhoopService);
   private snack = inject(MatSnackBar);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -111,6 +113,11 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
 
   pendingDeleteId = signal<number | null>(null);
   private pendingTimer?: ReturnType<typeof setTimeout>;
+
+  /** Whoop conectado en el servidor: solo entonces se muestra el botón de sync. */
+  whoopConnected = signal(false);
+  /** Sincronización de Whoop en curso, para desactivar el botón y girar el icono. */
+  syncingWhoop = signal(false);
 
   // ── Derivados ──
 
@@ -174,6 +181,11 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
     const date = params.get('date');
 
     this.activityService.ensureFamilies().subscribe();
+    // Silencioso: si Whoop no está configurado/conectado, el botón no aparece.
+    this.whoop.status().subscribe({
+      next: (s) => this.whoopConnected.set(s.connected),
+      error: () => this.whoopConnected.set(false),
+    });
 
     if (mode && ['day', 'month'].includes(mode)) this.mode.set(mode);
     if (date) {
@@ -340,6 +352,27 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
 
   trackActivity(_index: number, activity: Activity): number {
     return activity.id;
+  }
+
+  /** Sincroniza los workouts de Whoop del día abierto y recarga el detalle. */
+  syncWhoop(): void {
+    if (this.syncingWhoop()) return;
+    this.syncingWhoop.set(true);
+    this.whoop.sync(this.anchorIso()).subscribe({
+      next: (res) => {
+        this.syncingWhoop.set(false);
+        const nuevas = res.created + res.updated;
+        const msg = nuevas
+          ? `Whoop: ${res.created} nuevas, ${res.updated} actualizadas`
+          : 'Whoop: sin actividades ese día';
+        this.snack.open(msg, 'OK', { duration: 3000 });
+        if (nuevas) this.loadDay();
+      },
+      error: () => {
+        this.syncingWhoop.set(false);
+        this.snack.open('No se pudo sincronizar con Whoop', 'OK');
+      },
+    });
   }
 
   onPhotoError(log: FoodLog): void {

@@ -204,10 +204,18 @@
 
       <div class="section-header">
         <span class="section-label">Actividad</span>
-        <a class="add-to-day" routerLink="/activity" [queryParams]="{ date: anchorIso() }">
-          <mat-icon>add</mat-icon>
-          Registrar
-        </a>
+        <div class="section-actions">
+          @if (whoopConnected()) {
+            <button type="button" class="add-to-day sync-whoop" (click)="syncWhoop()" [disabled]="syncingWhoop()">
+              <mat-icon [class.spin]="syncingWhoop()">sync</mat-icon>
+              {{ syncingWhoop() ? 'Sincronizando…' : 'Whoop' }}
+            </button>
+          }
+          <a class="add-to-day" routerLink="/activity" [queryParams]="{ date: anchorIso() }">
+            <mat-icon>add</mat-icon>
+            Registrar
+          </a>
+        </div>
       </div>
 
       <app-activity-list [activities]="dayActivities()" (changed)="load()" />
