@@ -206,6 +206,22 @@ reconstruye la biblioteca desde los registros (idempotente).
 - **Las calorías de una actividad NO se restan del objetivo**: el objetivo ya
   incluye factor de actividad; restarlas sería contarlas dos veces. Son
   informativas hasta que haya Whoop (que medirá el gasto real del día).
+- **Gasto energético del día vs. calorías de una sesión**: el gasto TOTAL del
+  día vive en `energy_expenditures` (una fila por día natural, único), NO en las
+  `Activity`. En Whoop ese total es el del *ciclo* fisiológico
+  (`/v2/cycle`, `score.kilojoule`), no la suma de workouts. Cada ciclo se asigna
+  al día natural de su inicio en `APP_TIMEZONE`.
+- **Sync automático de Whoop a medianoche** (`app/scheduler.py`, APScheduler):
+  a las 00:00 de `APP_TIMEZONE` se traen el gasto diario y los workouts de los
+  últimos `WHOOP_SYNC_DAYS` días (hoy + pasados, por si alguno quedó sin dato).
+  Con **2 workers de gunicorn** cada uno arranca su scheduler; un
+  `pg_try_advisory_lock` (clave distinta de la de `prepare_schema`) hace que
+  solo uno ejecute el job. `SCHEDULER_ENABLED=0` lo desactiva; no arranca si
+  Whoop no está configurado ni en el proceso padre del reloader en dev.
+- **El sync de gasto NO pisa una corrección manual**: `energy_service.record_whoop`
+  respeta un día con `source='manual'` (devuelve 'skipped'). El botón "Whoop"
+  del calendario (`POST /api/whoop/sync?date=`) hace lo mismo que el job pero
+  para un día: workouts + gasto de ese día.
 - **Actividad: una sola tabla `activities` para manual y Whoop** (`source`,
   `external_id`). Las columnas encajan con `/v2/activity/workout` para que
   conectar la pulsera sea un mapeo, no una migración. Lo exclusivo de Whoop va en
@@ -261,9 +277,10 @@ producción.
 
 ## Pendiente
 
-- **Integración con Whoop** (fases 0–5): bloqueada hasta tener cuenta de
-  desarrollador y Client ID/Secret. La app ya está preparada (tabla `activities`,
-  columnas compatibles). De Whoop se tomarán las **calorías gastadas**; las
+- **Integración con Whoop** (fases 0–5): el código está completo (OAuth, sync de
+  workouts, sync del gasto diario y el job nocturno de `app/scheduler.py`), pero
+  falta **verificarlo con la pulsera y credenciales reales** (Client ID/Secret
+  del portal de developer). De Whoop se toman las **calorías gastadas**; las
   consumidas siguen saliendo del registro de comida.
 - **Adherencia semanal** ("3 de 4 sesiones" contra los días de entrenamiento del
   perfil): aparcada hasta tener actividades reales acumuladas.

@@ -83,11 +83,13 @@ def callback():
 
 @whoop_bp.route('/sync', methods=['POST'])
 def sync():
-    """Trae los workouts de Whoop a la tabla de actividades.
+    """Trae de Whoop los workouts (a `activities`) y el gasto total del día
+    (a `energy_expenditures`).
 
-    Sin parámetros sincroniza los últimos 30 días. Con ?date=YYYY-MM-DD (o en el
+    Sin parámetros sincroniza una ventana reciente. Con ?date=YYYY-MM-DD (o en el
     cuerpo JSON) sincroniza solo ese día natural, en la zona horaria del usuario.
-    Idempotente (dedup por external_id); devuelve created/updated/seen.
+    Idempotente; devuelve created/updated/seen de los workouts y, en `energy`, el
+    resultado del gasto diario.
     """
     if not whoop_service.is_connected():
         return jsonify({'error': 'Whoop no está conectado.'}), 409
@@ -103,6 +105,7 @@ def sync():
 
     try:
         result = whoop_service.sync_recent_workouts(since=since, until=until)
+        result['energy'] = whoop_service.sync_daily_energy(since=since, until=until)
     except WhoopError as exc:
         return jsonify({'error': str(exc)}), 502
     return jsonify(result)

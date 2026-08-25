@@ -9,11 +9,21 @@ export interface WhoopStatus {
   connected: boolean;
 }
 
+/** Gasto diario traído de Whoop: días creados/actualizados/omitidos y vistos. */
+export interface WhoopEnergyResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  seen: number;
+}
+
 /** Resultado de una sincronización: cuántos workouts se vieron/crearon/actualizaron. */
 export interface WhoopSyncResult {
   created: number;
   updated: number;
   seen: number;
+  /** Resultado de sincronizar el gasto energético total del día. */
+  energy?: WhoopEnergyResult;
 }
 
 @Injectable({ providedIn: 'root' })

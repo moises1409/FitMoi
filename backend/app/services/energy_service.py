@@ -21,9 +21,8 @@ def for_day(day: date) -> EnergyExpenditure | None:
     return EnergyExpenditure.query.filter_by(measured_on=day).first()
 
 
-def record(calories, day: date, source: str = 'manual',
-           note: str | None = None) -> EnergyExpenditure:
-    """Registra el gasto de un día. Uno por día: repetir corrige el anterior."""
+def _clean_calories(calories) -> float:
+    """Valida y normaliza a un kcal razonable; lanza ValueError si no cuela."""
     try:
         value = round(float(calories), 1)
     except (TypeError, ValueError):
@@ -32,6 +31,13 @@ def record(calories, day: date, source: str = 'manual',
         raise ValueError('Las calorías no son un número válido.')
     if not (MIN_CALORIES <= value <= MAX_CALORIES):
         raise ValueError(f'Las calorías deben estar entre {MIN_CALORIES:.0f} y {MAX_CALORIES:.0f}.')
+    return value
+
+
+def record(calories, day: date, source: str = 'manual',
+           note: str | None = None) -> EnergyExpenditure:
+    """Registra el gasto de un día. Uno por día: repetir corrige el anterior."""
+    value = _clean_calories(calories)
 
     if day > date.today():
         raise ValueError('No puedes registrar el gasto de un día futuro.')
@@ -50,6 +56,36 @@ def record(calories, day: date, source: str = 'manual',
 
     db.session.flush()
     return entry
+
+
+def record_whoop(calories, day: date) -> str:
+    """Vuelca el gasto total de un día venido de Whoop.
+
+    NO pisa una corrección hecha a mano: si el día ya tiene una entrada
+    `manual`, se respeta y se devuelve 'skipped' (es la promesa del modelo).
+    Tampoco toca días futuros. Devuelve 'created', 'updated', 'unchanged' o
+    'skipped'. No hace commit: lo hace quien orquesta la sincronización.
+    """
+    if day > date.today():
+        return 'skipped'
+
+    value = _clean_calories(calories)
+    entry = EnergyExpenditure.query.filter_by(measured_on=day).first()
+
+    if entry is None:
+        db.session.add(EnergyExpenditure(
+            calories=value, measured_on=day, source='whoop',
+        ))
+        return 'created'
+
+    if entry.source == 'manual':
+        return 'skipped'
+
+    if entry.calories == value:
+        return 'unchanged'
+    entry.calories = value
+    entry.source = 'whoop'
+    return 'updated'
 
 
 def delete(entry_id: int) -> bool:

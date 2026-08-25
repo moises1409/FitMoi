@@ -30,6 +30,13 @@ class Config:
     # Zona horaria del usuario: determina que cuenta como "hoy" en la vista diaria.
     APP_TIMEZONE = os.environ.get('APP_TIMEZONE', 'Europe/Madrid')
 
+    # Sincronizacion automatica con Whoop a las 00:00 (ver app/scheduler.py).
+    # SCHEDULER_ENABLED=0 la desactiva (util en dev). WHOOP_SYNC_DAYS es la
+    # ventana que repasa cada noche: hoy y los dias pasados por si alguno quedo
+    # sin gasto registrado.
+    SCHEDULER_ENABLED = _env_bool('SCHEDULER_ENABLED', True)
+    WHOOP_SYNC_DAYS = int(os.environ.get('WHOOP_SYNC_DAYS', 7))
+
     # Whoop OAuth (esbozo). Vacio = integracion desactivada; /api/whoop/status lo
     # refleja. Al rellenarlos (portal de developer de Whoop) se habilita el flujo.
     # WHOOP_REDIRECT_URI debe COINCIDIR literal con la registrada en el portal;

@@ -354,7 +354,7 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
     return activity.id;
   }
 
-  /** Sincroniza los workouts de Whoop del día abierto y recarga el detalle. */
+  /** Sincroniza de Whoop los workouts y el gasto del día abierto, y recarga. */
   syncWhoop(): void {
     if (this.syncingWhoop()) return;
     this.syncingWhoop.set(true);
@@ -362,11 +362,19 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.syncingWhoop.set(false);
         const nuevas = res.created + res.updated;
-        const msg = nuevas
-          ? `Whoop: ${res.created} nuevas, ${res.updated} actualizadas`
-          : 'Whoop: sin actividades ese día';
+        const energia = (res.energy?.created ?? 0) + (res.energy?.updated ?? 0);
+        let msg: string;
+        if (nuevas && energia) {
+          msg = `Whoop: ${nuevas} actividad(es) y el gasto del día`;
+        } else if (nuevas) {
+          msg = `Whoop: ${res.created} nuevas, ${res.updated} actualizadas`;
+        } else if (energia) {
+          msg = 'Whoop: gasto del día actualizado';
+        } else {
+          msg = 'Whoop: sin novedades ese día';
+        }
         this.snack.open(msg, 'OK', { duration: 3000 });
-        if (nuevas) this.loadDay();
+        if (nuevas || energia) this.loadDay();
       },
       error: () => {
         this.syncingWhoop.set(false);

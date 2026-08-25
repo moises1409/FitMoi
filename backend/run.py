@@ -1,5 +1,6 @@
 from app import create_app
 from app.db_setup import prepare_schema, wait_for_db
+from app.scheduler import init_scheduler
 
 app = create_app()
 
@@ -11,6 +12,9 @@ if __name__ == '__main__':
 
     prepare_schema(app)
     print('Base de datos lista.')
+
+    # Sync automatico de Whoop a medianoche (si esta configurado y habilitado).
+    init_scheduler(app)
 
     debug = app.config['DEBUG']
     if debug:
