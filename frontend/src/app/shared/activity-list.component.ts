@@ -22,25 +22,29 @@ const CONFIRM_WINDOW_MS = 4000;
       <div class="activity-card card">
         <span class="activity-bar" [style.background]="colorOf(a.activity_type)"></span>
         <div class="activity-body">
-          <div class="activity-head">
-            <mat-icon class="activity-icon" [style.color]="colorOf(a.activity_type)">
-              {{ iconOf(a.activity_type) }}
-            </mat-icon>
-            <span class="activity-name">{{ a.sport_name }}</span>
-            @if (a.duration_min) {
-              <span class="activity-dur">{{ a.duration_min }} min</span>
-            }
-          </div>
+          <a class="activity-open" [routerLink]="['/activity/detail']" [queryParams]="{ id: a.id }"
+             aria-label="Ver detalle de la actividad">
+            <div class="activity-head">
+              <mat-icon class="activity-icon" [style.color]="colorOf(a.activity_type)">
+                {{ iconOf(a.activity_type) }}
+              </mat-icon>
+              <span class="activity-name">{{ a.sport_name }}</span>
+              @if (a.duration_min) {
+                <span class="activity-dur">{{ a.duration_min }} min</span>
+              }
+              <mat-icon class="activity-chevron">chevron_right</mat-icon>
+            </div>
 
-          <p class="activity-meta">
-            {{ labelOf(a.activity_type) }}
-            · {{ a.started_at | date:'HH:mm' }}
-            @if (a.calories) { · {{ a.calories | number:'1.0-0' }} kcal }
-            @if (a.feeling) { · {{ feelingLabels[a.feeling] }} }
-            @if (a.source === 'whoop') { · <span class="from-whoop">Whoop</span> }
-          </p>
+            <p class="activity-meta">
+              {{ labelOf(a.activity_type) }}
+              · {{ a.started_at | date:'HH:mm' }}
+              @if (a.calories) { · {{ a.calories | number:'1.0-0' }} kcal }
+              @if (a.feeling) { · {{ feelingLabels[a.feeling] }} }
+              @if (a.source === 'whoop') { · <span class="from-whoop">Whoop</span> }
+            </p>
 
-          @if (a.notes) { <p class="activity-notes">{{ a.notes }}</p> }
+            @if (a.notes) { <p class="activity-notes">{{ a.notes }}</p> }
+          </a>
 
           <div class="activity-actions">
             @if (pendingDelete() === a.id) {

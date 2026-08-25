@@ -69,6 +69,12 @@ export const routes: Routes = [
     loadComponent: () => import('./activity-form/activity-form.component').then(m => m.ActivityFormComponent),
   },
   {
+    path: 'activity/detail',
+    title: 'Detalle de actividad · FitMoi',
+    canActivate: [authGuard],
+    loadComponent: () => import('./activity-detail/activity-detail.component').then(m => m.ActivityDetailComponent),
+  },
+  {
     path: 'energy',
     title: 'Calorías gastadas · FitMoi',
     canActivate: [authGuard],

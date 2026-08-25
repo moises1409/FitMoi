@@ -19,10 +19,28 @@
   padding: 11px 12px;
 }
 
+/* Toda la zona de datos abre el detalle; las acciones quedan aparte. */
+.activity-open {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover .activity-name { color: var(--primary); }
+}
+
 .activity-head {
   display: flex;
   align-items: center;
   gap: 7px;
+}
+
+.activity-chevron {
+  font-size: 20px;
+  height: 20px;
+  width: 20px;
+  flex-shrink: 0;
+  color: var(--text-muted);
 }
 
 .activity-icon {
