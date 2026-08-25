@@ -1,0 +1,148 @@
+<div class="page">
+
+  <header class="top-bar">
+    <button class="icon-btn" type="button" (click)="back()" aria-label="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div style="flex:1">
+      <div class="top-bar-title">Detalle de actividad</div>
+      <div class="top-bar-sub">Cómo fue la sesión</div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    @if (loading()) {
+      <div class="skeleton-card"></div>
+    } @else if (notFound()) {
+      <div class="empty-state">
+        <mat-icon>error_outline</mat-icon>
+        <span>No se encontró la actividad.</span>
+      </div>
+    }
+
+    @if (activity(); as a) {
+
+      <!-- Cabecera con el color de la familia -->
+      <div class="detail-hero card" [style.--family-color]="colorOf(a.activity_type)">
+        <span class="hero-bar"></span>
+        <div class="hero-body">
+          <mat-icon class="hero-icon">{{ iconOf(a.activity_type) }}</mat-icon>
+          <div class="hero-text">
+            <h1 class="hero-name">{{ a.sport_name }}</h1>
+            <p class="hero-family">
+              {{ labelOf(a.activity_type) }}
+              @if (a.source === 'whoop') { · <span class="from-whoop">Whoop</span> }
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen: lo común a manual y Whoop -->
+      <div class="stat-grid">
+        <div class="stat-tile card">
+          <mat-icon>schedule</mat-icon>
+          <span class="stat-value">{{ a.started_at | date:'HH:mm' }}</span>
+          <span class="stat-label">{{ a.started_at | date:'d MMM' }}</span>
+        </div>
+        @if (a.duration_min) {
+          <div class="stat-tile card">
+            <mat-icon>timer</mat-icon>
+            <span class="stat-value">{{ a.duration_min }}</span>
+            <span class="stat-label">minutos</span>
+          </div>
+        }
+        @if (a.calories) {
+          <div class="stat-tile card">
+            <mat-icon>local_fire_department</mat-icon>
+            <span class="stat-value">{{ a.calories | number:'1.0-0' }}</span>
+            <span class="stat-label">kcal</span>
+          </div>
+        }
+        @if (a.feeling) {
+          <div class="stat-tile card">
+            <mat-icon>mood</mat-icon>
+            <span class="stat-value">{{ a.feeling }}/5</span>
+            <span class="stat-label">{{ feelingLabels[a.feeling] }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- Notas -->
+      @if (a.notes) {
+        <div class="detail-notes card">
+          <span class="detail-section-label">Comentarios</span>
+          <p>{{ a.notes }}</p>
+        </div>
+      }
+
+      <!-- Métricas de la pulsera -->
+      @if (metricRows().length) {
+        <div class="metrics card">
+          <span class="detail-section-label">Datos de Whoop</span>
+          <div class="metric-rows">
+            @for (row of metricRows(); track row.label) {
+              <div class="metric-row">
+                <mat-icon>{{ row.icon }}</mat-icon>
+                <span class="metric-label">{{ row.label }}</span>
+                <span class="metric-value">{{ row.value }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Zonas de pulso -->
+      @if (hasZones()) {
+        <div class="zones card">
+          <span class="detail-section-label">Zonas de pulso</span>
+          <div class="zone-bar">
+            @for (z of heartZones(); track z.label) {
+              @if (z.pct > 0) {
+                <span class="zone-seg" [style.width.%]="z.pct" [style.background]="z.color"
+                      [attr.title]="z.label + ': ' + z.minutes + ' min'"></span>
+              }
+            }
+          </div>
+          <div class="zone-legend">
+            @for (z of heartZones(); track z.label) {
+              @if (z.minutes > 0) {
+                <div class="zone-item">
+                  <span class="zone-dot" [style.background]="z.color"></span>
+                  <span class="zone-name">{{ z.label }}</span>
+                  <span class="zone-min">{{ z.minutes }} min</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Acciones -->
+      <div class="detail-actions">
+        @if (a.source === 'manual') {
+          <button class="btn-secondary" type="button" (click)="edit()">
+            <mat-icon>edit</mat-icon> Editar
+          </button>
+        } @else {
+          <span class="detail-locked">
+            <mat-icon>lock</mat-icon> Se sincroniza desde Whoop
+          </span>
+        }
+
+        @if (pendingDelete()) {
+          <button class="btn-delete-confirm" type="button" (click)="requestDelete()">
+            <mat-icon>delete_forever</mat-icon> Confirmar
+          </button>
+          <button class="btn-delete-cancel" type="button" (click)="cancelDelete()">Cancelar</button>
+        } @else {
+          <button class="btn-delete" type="button" (click)="requestDelete()">
+            <mat-icon>delete_outline</mat-icon> Eliminar
+          </button>
+        }
+      </div>
+
+    }
+
+  </div>
+</div>
