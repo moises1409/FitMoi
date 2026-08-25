@@ -137,6 +137,28 @@ body.dark-theme .day-cell.today .day-number { color: var(--primary); }
 
 body.dark-theme .add-to-day { color: var(--primary); }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* El botón de Whoop reusa .add-to-day pero es un <button>: hay que resetearlo. */
+button.add-to-day {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  &:disabled { opacity: 0.6; cursor: default; }
+}
+
+.sync-whoop mat-icon.spin { animation: whoop-spin 0.9s linear infinite; }
+
+@keyframes whoop-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Gasto energético del día ── */
 .energy-card {
   display: flex;
