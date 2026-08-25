@@ -168,8 +168,16 @@ _SPORT_NAMES = {
 }
 
 
-def sync_recent_workouts(since: datetime | None = None) -> dict:
-    """Trae los workouts recientes de Whoop y los vuelca en `activities`.
+def sync_recent_workouts(
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> dict:
+    """Trae los workouts de Whoop en la ventana [since, until) y los vuelca en
+    `activities`.
+
+    Sin argumentos sincroniza los últimos 30 días. Para un día concreto, pásale
+    los límites de ese día (lo hace la ruta a partir de ?date=YYYY-MM-DD). El
+    filtro es por el INICIO del workout, en la referencia horaria de Whoop (UTC).
 
     Idempotente: cada workout se identifica por su UUID en `external_id` (unique),
     así que reejecutar actualiza en vez de duplicar. Devuelve un resumen
@@ -184,10 +192,12 @@ def sync_recent_workouts(since: datetime | None = None) -> dict:
 
     if since is None:
         since = datetime.now(timezone.utc) - timedelta(days=30)
+    if until is None:
+        until = datetime.now(timezone.utc)
 
     params = {
         'start': _iso(since),
-        'end': _iso(datetime.now(timezone.utc)),
+        'end': _iso(until),
         'limit': _WORKOUT_PAGE,
     }
 
