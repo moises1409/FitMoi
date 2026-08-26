@@ -61,7 +61,11 @@ export interface DayCell {
   burned: number;
   /** Balance consumidas − gastadas; negativo = déficit, positivo = superávit. */
   balance: number;
-  /** Hay algún dato ese día (comida o gasto) para pintar el balance. */
+  /** Altura de la barra de balance (0-100), según su magnitud. */
+  balancePercent: number;
+  /** Hay gasto informado ese día: sin él no hay balance ni barra que pintar. */
+  hasBalance: boolean;
+  /** Hay algún dato ese día (comida o gasto) para resaltar la celda. */
   hasData: boolean;
   /** Familias con actividad ese día, para los puntos. */
   marks: DayActivityMark[];
@@ -73,6 +77,8 @@ const EMPTY_TOTALS: Totals = {
   calories: 0, proteins: 0, carbs: 0, fats: 0, fiber: 0, saturated_fat: 0, salt: 0,
 };
 const CONFIRM_WINDOW_MS = 4000;
+/** Balance (kcal) que llena la barra al 100%; da margen de lectura al día a día. */
+const BALANCE_FULL_BAR = 1000;
 
 @Component({
   selector: 'app-food-calendar',
@@ -321,6 +327,8 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
       meals,
       burned,
       balance: calories - burned,
+      balancePercent: Math.min((Math.abs(calories - burned) / BALANCE_FULL_BAR) * 100, 100),
+      hasBalance: burned > 0,
       hasData: meals > 0 || burned > 0,
       marks: this.marksByDay()[iso] ?? [],
       percent: Math.min((calories / this.goal) * 100, 100),
