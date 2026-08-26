@@ -266,26 +266,35 @@ def sync_daily_energy(
         until = datetime.now(timezone.utc)
 
     tz = _local_tz()
-    records = _fetch_cycles(token, since, until)
+    # Días objetivo: los del rango [since, until) en hora local.
+    target_start = since.astimezone(tz).date()
+    target_end = until.astimezone(tz).date()
 
-    # Un día puede tener más de un ciclo en la ventana; nos quedamos con el mayor
-    # gasto de ese día (el ciclo completo, no un tramo parcial aún sin cerrar).
+    # El ciclo que representa un día EMPIEZA la noche anterior (Whoop corta por el
+    # sueño), así que su inicio cae fuera del día natural. Se amplía la consulta
+    # un día hacia atrás para no perder ese ciclo; luego se filtra por día objetivo.
+    records = _fetch_cycles(token, since - timedelta(days=1), until)
+
     per_day: dict = {}
     seen = 0
     for record in records:
         seen += 1
-        start = _parse(record.get('start'))
-        if start is None:
-            continue
-        # Solo el ciclo ya puntuado trae el gasto real del día; el ciclo en curso
-        # (score_state != 'SCORED') da un total parcial que sería engañoso.
+        # Solo el ciclo ya puntuado trae un gasto fiable.
         if record.get('score_state') not in (None, 'SCORED'):
+            continue
+        day = _cycle_day(record, tz)
+        if day is None:
+            # Ciclo aún sin cerrar (end=null): el día en curso todavía no tiene un
+            # total final; se ignora para no registrar un parcial engañoso.
+            continue
+        if not (target_start <= day < target_end):
+            # Traído solo por ampliar la ventana; no es un día pedido.
             continue
         kilojoule = (record.get('score') or {}).get('kilojoule')
         if kilojoule is None:
             continue
-        day = start.astimezone(tz).date()
         kcal = round(kilojoule * _KJ_TO_KCAL, 1)
+        # Un día podría tener más de un ciclo; se conserva el de mayor gasto.
         per_day[day] = max(per_day.get(day, 0.0), kcal)
 
     created = updated = skipped = 0
@@ -301,6 +310,23 @@ def sync_daily_energy(
     if created or updated:
         db.session.commit()
     return {'created': created, 'updated': updated, 'skipped': skipped, 'seen': seen}
+
+
+def _cycle_day(record: dict, tz: ZoneInfo):
+    """Día natural que representa un ciclo de Whoop.
+
+    Whoop corta los ciclos por el sueño: empiezan la noche anterior (~23:00) y
+    terminan la noche siguiente, de modo que el día que representan es el que
+    queda EN MEDIO, no el de su inicio. Se usa el punto medio del ciclo, robusto
+    a que uno se acueste antes o después de medianoche. Un ciclo aún sin cerrar
+    (`end`=null) es el día en curso: devuelve None (todavía no es un total final).
+    """
+    start = _parse(record.get('start'))
+    end = _parse(record.get('end'))
+    if start is None or end is None:
+        return None
+    midpoint = start + (end - start) / 2
+    return midpoint.astimezone(tz).date()
 
 
 def _fetch_cycles(token: str, since: datetime, until: datetime) -> list:
@@ -338,13 +364,16 @@ def debug_cycles(since: datetime, until: datetime) -> dict:
         start = _parse(record.get('start'))
         score = record.get('score') or {}
         kilojoule = score.get('kilojoule')
+        day = _cycle_day(record, tz)
         salida.append({
             'start': record.get('start'),
             'end': record.get('end'),
             'score_state': record.get('score_state'),
             'kilojoule': kilojoule,
             'kcal': round(kilojoule * _KJ_TO_KCAL, 1) if kilojoule is not None else None,
-            'mapped_day': start.astimezone(tz).date().isoformat() if start else None,
+            # Día que representa (punto medio); None si el ciclo sigue abierto.
+            'mapped_day': day.isoformat() if day else None,
+            'start_day': start.astimezone(tz).date().isoformat() if start else None,
         })
     return {
         'window': {'since': _iso(since), 'until': _iso(until)},
