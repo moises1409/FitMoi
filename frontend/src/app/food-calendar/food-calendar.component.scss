@@ -129,6 +129,9 @@ body.dark-theme .day-cell.today .day-number { color: var(--primary); }
   background: var(--primary);
   transition: height 0.4s ease-out;
   &.over { background: #FF7043; }
+  /* Modo balance: verde para déficit, naranja para superávit. */
+  &.deficit { background: var(--primary); }
+  &.surplus { background: #FF7043; }
 }
 
 .day-empty { height: 22px; }
@@ -142,24 +145,15 @@ body.dark-theme .day-cell.today .day-number { color: var(--primary); }
 
 /* Balance consumidas − gastadas en la celda del mes (modo balance). */
 .day-balance {
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.1;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
   color: var(--text-muted);
   &.deficit { color: var(--primary-dark); }
   &.surplus { color: #E5622E; }
 }
 
 body.dark-theme .day-balance.deficit { color: var(--primary); }
-
-.day-balance-unit {
-  font-size: 8px;
-  font-weight: 700;
-  color: var(--text-muted);
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
 
 /* Calorías gastadas en la celda del mes, junto a las consumidas. */
 .day-burn {
