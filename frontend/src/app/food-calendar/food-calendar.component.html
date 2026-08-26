@@ -52,6 +52,24 @@
       </div>
     } @else if (mode() === 'month') {
       <!-- ═══ MES ═══ -->
+      <!-- Selector de qué muestra cada celda: progreso vs objetivo o balance. -->
+      <div class="display-toggle" role="group" aria-label="Modo de vista del calendario">
+        <button type="button" class="display-option"
+                [class.active]="displayMode() === 'goal'"
+                [attr.aria-pressed]="displayMode() === 'goal'"
+                (click)="setDisplayMode('goal')">
+          <mat-icon>flag</mat-icon>
+          Objetivo
+        </button>
+        <button type="button" class="display-option"
+                [class.active]="displayMode() === 'balance'"
+                [attr.aria-pressed]="displayMode() === 'balance'"
+                (click)="setDisplayMode('balance')">
+          <mat-icon>swap_vert</mat-icon>
+          Balance
+        </button>
+      </div>
+
       <div class="card month-card">
         <div class="weekday-row" aria-hidden="true">
           @for (d of weekdayLabels; track $index) {
@@ -65,25 +83,40 @@
               <button class="day-cell" type="button"
                       [class.outside]="!cell.inRange"
                       [class.today]="cell.isToday"
-                      [class.has-data]="cell.meals > 0 || cell.burned > 0"
+                      [class.has-data]="cell.hasData"
                       (click)="openDay(cell)"
                       [attr.aria-label]="(cell.date | date:'EEEE d MMMM')
                         + (cell.meals ? ': ' + cell.calories + ' kilocalorías consumidas' : ': sin registros')
-                        + (cell.burned ? ', ' + cell.burned + ' gastadas' : '')">
+                        + (cell.burned ? ', ' + cell.burned + ' gastadas' : '')
+                        + (displayMode() === 'balance' && cell.hasData
+                            ? ', balance ' + (cell.balance < 0 ? 'déficit ' : 'superávit ') + balanceAbs(cell) : '')">
                 <span class="day-number">{{ cell.date | date:'d' }}</span>
-                @if (cell.meals) {
-                  <span class="day-bar-track">
-                    <span class="day-bar" [class.over]="cell.over"
-                          [style.height.%]="cell.percent"></span>
-                  </span>
-                  <span class="day-kcal">{{ cell.calories | number:'1.0-0' }}</span>
+                @if (displayMode() === 'balance') {
+                  @if (cell.hasData) {
+                    <span class="day-balance"
+                          [class.deficit]="cell.balance < 0"
+                          [class.surplus]="cell.balance > 0">
+                      {{ cell.balance > 0 ? '+' : cell.balance < 0 ? '−' : '' }}{{ balanceAbs(cell) | number:'1.0-0' }}
+                    </span>
+                    <span class="day-balance-unit">kcal</span>
+                  } @else {
+                    <span class="day-empty"></span>
+                  }
                 } @else {
-                  <span class="day-empty"></span>
-                }
-                @if (cell.burned) {
-                  <span class="day-burn">
-                    <mat-icon>local_fire_department</mat-icon>{{ cell.burned | number:'1.0-0' }}
-                  </span>
+                  @if (cell.meals) {
+                    <span class="day-bar-track">
+                      <span class="day-bar" [class.over]="cell.over"
+                            [style.height.%]="cell.percent"></span>
+                    </span>
+                    <span class="day-kcal">{{ cell.calories | number:'1.0-0' }}</span>
+                  } @else {
+                    <span class="day-empty"></span>
+                  }
+                  @if (cell.burned) {
+                    <span class="day-burn">
+                      <mat-icon>local_fire_department</mat-icon>{{ cell.burned | number:'1.0-0' }}
+                    </span>
+                  }
                 }
                 @if (cell.marks.length) {
                   <span class="day-marks">

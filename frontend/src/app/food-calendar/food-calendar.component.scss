@@ -24,6 +24,45 @@
 body.dark-theme .back-to-month { color: var(--primary); }
 
 /* ═══ MES ═══ */
+/* Selector de modo de celda: objetivo (barra) o balance (número). */
+.display-toggle {
+  display: flex;
+  gap: 4px;
+  margin: 0 16px 12px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.display-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  mat-icon { font-size: 16px; height: 16px; width: 16px; }
+
+  &.active {
+    background: var(--surface);
+    color: var(--primary-dark);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+body.dark-theme .display-option.active { color: var(--primary); }
+
 .month-card { padding: 12px 8px 10px; }
 
 .weekday-row,
@@ -99,6 +138,27 @@ body.dark-theme .day-cell.today .day-number { color: var(--primary); }
   font-weight: 700;
   color: var(--text-muted);
   line-height: 1;
+}
+
+/* Balance consumidas − gastadas en la celda del mes (modo balance). */
+.day-balance {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text-muted);
+  &.deficit { color: var(--primary-dark); }
+  &.surplus { color: #E5622E; }
+}
+
+body.dark-theme .day-balance.deficit { color: var(--primary); }
+
+.day-balance-unit {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 /* Calorías gastadas en la celda del mes, junto a las consumidas. */

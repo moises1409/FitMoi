@@ -38,6 +38,16 @@ import {
  */
 export type CalendarMode = 'day' | 'month';
 
+/**
+ * Cómo se pinta cada celda del mes:
+ * - `goal`: barra de consumidas contra el objetivo + gastadas aparte (por defecto).
+ * - `balance`: un único número, consumidas − gastadas (déficit/superávit).
+ */
+export type DisplayMode = 'goal' | 'balance';
+
+/** Preferencia de modo de celda; persiste en el navegador entre visitas. */
+const DISPLAY_MODE_KEY = 'fitmoi.calendarDisplay';
+
 /** Una celda de la rejilla: la fecha más sus totales, si los hay. */
 export interface DayCell {
   date: Date;
@@ -49,6 +59,10 @@ export interface DayCell {
   meals: number;
   /** Calorías gastadas ese día (0 si no se ha registrado). */
   burned: number;
+  /** Balance consumidas − gastadas; negativo = déficit, positivo = superávit. */
+  balance: number;
+  /** Hay algún dato ese día (comida o gasto) para pintar el balance. */
+  hasData: boolean;
   /** Familias con actividad ese día, para los puntos. */
   marks: DayActivityMark[];
   percent: number;
@@ -93,6 +107,8 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
   readonly weekdayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
   mode = signal<CalendarMode>('month');
+  /** Modo de celda del mes (objetivo o balance); recordado en el navegador. */
+  displayMode = signal<DisplayMode>(this.readDisplayMode());
   anchor = signal<Date>(startOfDay(new Date()));
   loading = signal(true);
 
@@ -293,6 +309,8 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
     const iso = toISODate(date);
     const entry = this.summary().get(iso);
     const calories = entry?.calories ?? 0;
+    const meals = entry?.meals ?? 0;
+    const burned = this.energyByDay()[iso] ?? 0;
     return {
       date,
       iso,
@@ -300,12 +318,37 @@ export class FoodCalendarComponent implements OnInit, OnDestroy {
       isToday: isSameDay(date, new Date()),
       isSelected: isSameDay(date, this.anchor()),
       calories,
-      meals: entry?.meals ?? 0,
-      burned: this.energyByDay()[iso] ?? 0,
+      meals,
+      burned,
+      balance: calories - burned,
+      hasData: meals > 0 || burned > 0,
       marks: this.marksByDay()[iso] ?? [],
       percent: Math.min((calories / this.goal) * 100, 100),
       over: calories > this.goal,
     };
+  }
+
+  /** Valor absoluto del balance, para pintar el número sin el signo. */
+  balanceAbs(cell: DayCell): number {
+    return Math.abs(cell.balance);
+  }
+
+  /** Cambia el modo de celda del mes y recuerda la elección en el navegador. */
+  setDisplayMode(m: DisplayMode): void {
+    this.displayMode.set(m);
+    try {
+      localStorage.setItem(DISPLAY_MODE_KEY, m);
+    } catch {
+      // Modo privado o almacenamiento lleno: la sesión sigue, solo no persiste.
+    }
+  }
+
+  private readDisplayMode(): DisplayMode {
+    try {
+      return localStorage.getItem(DISPLAY_MODE_KEY) === 'balance' ? 'balance' : 'goal';
+    } catch {
+      return 'goal';
+    }
   }
 
   trackCell(_index: number, cell: DayCell): string {
