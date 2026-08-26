@@ -266,35 +266,27 @@ def sync_daily_energy(
         until = datetime.now(timezone.utc)
 
     tz = _local_tz()
-    params = {'start': _iso(since), 'end': _iso(until), 'limit': _WORKOUT_PAGE}
+    records = _fetch_cycles(token, since, until)
 
     # Un día puede tener más de un ciclo en la ventana; nos quedamos con el mayor
-    # gasto de ese día (el ciclo completo, no un tramo parcial).
+    # gasto de ese día (el ciclo completo, no un tramo parcial aún sin cerrar).
     per_day: dict = {}
     seen = 0
-    with httpx.Client(base_url=API_BASE, timeout=_TIMEOUT) as client:
-        next_token = None
-        for _ in range(_MAX_PAGES):
-            page_params = dict(params)
-            if next_token:
-                page_params['nextToken'] = next_token
-            payload = _get(client, token, '/v2/cycle', page_params)
-
-            for record in payload.get('records', []):
-                seen += 1
-                start = _parse(record.get('start'))
-                if start is None:
-                    continue
-                kilojoule = (record.get('score') or {}).get('kilojoule')
-                if kilojoule is None:
-                    continue
-                day = start.astimezone(tz).date()
-                kcal = round(kilojoule * _KJ_TO_KCAL, 1)
-                per_day[day] = max(per_day.get(day, 0.0), kcal)
-
-            next_token = payload.get('next_token')
-            if not next_token:
-                break
+    for record in records:
+        seen += 1
+        start = _parse(record.get('start'))
+        if start is None:
+            continue
+        # Solo el ciclo ya puntuado trae el gasto real del día; el ciclo en curso
+        # (score_state != 'SCORED') da un total parcial que sería engañoso.
+        if record.get('score_state') not in (None, 'SCORED'):
+            continue
+        kilojoule = (record.get('score') or {}).get('kilojoule')
+        if kilojoule is None:
+            continue
+        day = start.astimezone(tz).date()
+        kcal = round(kilojoule * _KJ_TO_KCAL, 1)
+        per_day[day] = max(per_day.get(day, 0.0), kcal)
 
     created = updated = skipped = 0
     for day, kcal in per_day.items():
@@ -309,6 +301,57 @@ def sync_daily_energy(
     if created or updated:
         db.session.commit()
     return {'created': created, 'updated': updated, 'skipped': skipped, 'seen': seen}
+
+
+def _fetch_cycles(token: str, since: datetime, until: datetime) -> list:
+    """Devuelve los registros crudos de ciclo de Whoop en [since, until)."""
+    records: list = []
+    params = {'start': _iso(since), 'end': _iso(until), 'limit': _WORKOUT_PAGE}
+    with httpx.Client(base_url=API_BASE, timeout=_TIMEOUT) as client:
+        next_token = None
+        for _ in range(_MAX_PAGES):
+            page_params = dict(params)
+            if next_token:
+                page_params['nextToken'] = next_token
+            payload = _get(client, token, '/v2/cycle', page_params)
+            records.extend(payload.get('records', []))
+            next_token = payload.get('next_token')
+            if not next_token:
+                break
+    return records
+
+
+def debug_cycles(since: datetime, until: datetime) -> dict:
+    """Diagnóstico: qué ciclos devuelve Whoop en una ventana, SIN escribir nada.
+
+    Sirve para ver por qué el gasto de un día no cuadra con la app de Whoop
+    (ciclo parcial, mapeo de día, kJ→kcal). Devuelve por ciclo su inicio/fin,
+    estado de puntuación, kilojulios, kcal y a qué día natural se asignaría.
+    """
+    token = valid_access_token()
+    if token is None:
+        raise WhoopError('Whoop no está conectado.')
+
+    tz = _local_tz()
+    salida = []
+    for record in _fetch_cycles(token, since, until):
+        start = _parse(record.get('start'))
+        score = record.get('score') or {}
+        kilojoule = score.get('kilojoule')
+        salida.append({
+            'start': record.get('start'),
+            'end': record.get('end'),
+            'score_state': record.get('score_state'),
+            'kilojoule': kilojoule,
+            'kcal': round(kilojoule * _KJ_TO_KCAL, 1) if kilojoule is not None else None,
+            'mapped_day': start.astimezone(tz).date().isoformat() if start else None,
+        })
+    return {
+        'window': {'since': _iso(since), 'until': _iso(until)},
+        'timezone': str(tz),
+        'count': len(salida),
+        'cycles': salida,
+    }
 
 
 def _upsert_workout(record: dict) -> str:

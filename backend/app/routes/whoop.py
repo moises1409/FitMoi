@@ -111,6 +111,43 @@ def sync():
     return jsonify(result)
 
 
+@whoop_bp.route('/cycles', methods=['GET'])
+def cycles_debug():
+    """Diagnóstico (solo lectura): qué ciclos devuelve Whoop alrededor de un día.
+
+    GET /api/whoop/cycles?date=YYYY-MM-DD → ventana [día-1, día+2) para ver el
+    ciclo aunque empiece antes de medianoche, con su inicio/fin, score_state,
+    kilojulios, kcal y el día natural al que se asigna. No escribe nada; sirve
+    para entender por qué el gasto de un día no cuadra con la app de Whoop.
+    """
+    if not whoop_service.is_connected():
+        return jsonify({'error': 'Whoop no está conectado.'}), 409
+
+    date_str = request.args.get('date')
+    try:
+        if date_str:
+            start, _ = _day_bounds(str(date_str))
+            since = start - timedelta(days=1)
+            until = start + timedelta(days=2)
+        else:
+            until = datetime.now(_tz())
+            since = until - timedelta(days=3)
+    except ValueError:
+        return jsonify({'error': 'Fecha inválida; usa YYYY-MM-DD.'}), 400
+
+    try:
+        return jsonify(whoop_service.debug_cycles(since, until))
+    except WhoopError as exc:
+        return jsonify({'error': str(exc)}), 502
+
+
+def _tz() -> ZoneInfo:
+    try:
+        return ZoneInfo(current_app.config['APP_TIMEZONE'])
+    except (ZoneInfoNotFoundError, ValueError):
+        return ZoneInfo('UTC')
+
+
 def _day_bounds(date_str: str):
     """Límites [inicio, fin) de un día natural YYYY-MM-DD en la zona del usuario."""
     try:
