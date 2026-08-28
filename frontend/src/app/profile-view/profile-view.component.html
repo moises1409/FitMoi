@@ -63,6 +63,19 @@
           </a>
         </div>
 
+        <!-- ── Entrenador-agente: chat con todos los datos como contexto ── -->
+        <a class="coach-card card" routerLink="/coach">
+          <div class="coach-icon"><mat-icon>psychology</mat-icon></div>
+          <div class="coach-text">
+            <p class="card-title">Pregunta a tu entrenador</p>
+            <p class="coach-sub">
+              Resuelve tus dudas sobre nutrición, entrenos y progreso: conoce
+              todos tus datos y te responde con ellos.
+            </p>
+          </div>
+          <mat-icon class="coach-arrow">chevron_right</mat-icon>
+        </a>
+
         <!-- ── Peso ── -->
         @if (weight(); as w) {
           <div class="weight-card card">

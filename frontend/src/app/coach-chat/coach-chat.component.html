@@ -1,0 +1,65 @@
+<div class="page chat-page">
+
+  <header class="top-bar">
+    <a class="icon-btn" routerLink="/calendar" aria-label="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div style="flex:1">
+      <div class="top-bar-title">Tu entrenador</div>
+      <div class="top-bar-sub">Pregúntale sobre tus datos</div>
+    </div>
+    <button class="icon-btn" type="button" (click)="reset()" aria-label="Reiniciar charla">
+      <mat-icon>restart_alt</mat-icon>
+    </button>
+  </header>
+
+  <div class="messages" #scroller>
+    @if (loading()) {
+      <div class="skeleton-item"></div>
+      <div class="skeleton-item"></div>
+    } @else {
+      @for (msg of messages(); track $index) {
+        <div class="turn" [class.mine]="msg.role === 'user'">
+          @if (msg.role === 'assistant') {
+            <span class="coach-avatar" aria-hidden="true">
+              <mat-icon>fitness_center</mat-icon>
+            </span>
+          }
+          <div class="bubble">
+            <p>{{ msg.content }}</p>
+          </div>
+        </div>
+      }
+
+      @if (sending()) {
+        <div class="turn">
+          <span class="coach-avatar" aria-hidden="true">
+            <mat-icon>fitness_center</mat-icon>
+          </span>
+          <div class="bubble typing" role="status" aria-label="El entrenador está escribiendo">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      }
+
+      @if (showSuggestions()) {
+        <div class="suggestions">
+          @for (s of suggestions; track s) {
+            <button class="suggestion" type="button" (click)="ask(s)">{{ s }}</button>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <div class="composer">
+    <textarea class="composer-input" [(ngModel)]="draft" (keydown)="onKeydown($event)"
+              rows="1" maxlength="2000" placeholder="Pregúntale a tu entrenador…"
+              aria-label="Tu pregunta"></textarea>
+    <button class="composer-send" type="button" (click)="send()"
+            [disabled]="sending() || !draft.trim()" aria-label="Enviar">
+      <mat-icon>arrow_upward</mat-icon>
+    </button>
+  </div>
+
+</div>
