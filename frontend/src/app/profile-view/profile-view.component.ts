@@ -84,20 +84,59 @@ export class ProfileViewComponent implements OnInit {
   syncingWithings = signal(false);
 
   /**
-   * Composición corporal de la última pesada, lista para pintar. Solo hay datos
-   * si la pesada vino de la báscula Withings. Cada fila lleva su color de familia.
+   * Evolución de la composición corporal (báscula Withings). Para cada métrica
+   * recorre el histórico de pesadas y devuelve el valor actual, el cambio desde
+   * la primera medición y los puntos de una mini-gráfica, para poder medir el
+   * progreso en el tiempo. Solo aparece cada métrica si hay al menos un dato.
    */
-  readonly composition = computed(() => {
-    const e = this.weight()?.current_entry;
-    if (!e || !e.has_composition) return [];
-    const rows: { label: string; value: number | null; color: string }[] = [
-      { label: 'Masa grasa', value: e.fat_ratio, color: '#0891B2' },
-      { label: 'Masa muscular', value: e.muscle_ratio, color: '#6C4DE0' },
-      { label: 'Masa ósea', value: e.bone_ratio, color: '#4D7C0F' },
-      { label: 'Agua corporal', value: e.water_ratio, color: '#0EA5E9' },
+  readonly compositionTrends = computed(() => {
+    const entries = this.weight()?.entries ?? []; // cronológico: antigua → reciente
+    const metrics: { key: keyof WeightEntry; label: string; color: string }[] = [
+      { key: 'fat_ratio', label: 'Masa grasa', color: '#0891B2' },
+      { key: 'muscle_ratio', label: 'Masa muscular', color: '#6C4DE0' },
+      { key: 'bone_ratio', label: 'Masa ósea', color: '#4D7C0F' },
+      { key: 'water_ratio', label: 'Agua corporal', color: '#0EA5E9' },
     ];
-    return rows.filter((r) => r.value !== null);
+
+    return metrics
+      .map((m) => {
+        const serie = entries
+          .map((e) => e[m.key] as number | null)
+          .filter((v): v is number => v !== null);
+        if (!serie.length) return null;
+        const current = serie[serie.length - 1];
+        const delta = serie.length > 1 ? Math.round((current - serie[0]) * 10) / 10 : null;
+        return {
+          ...m,
+          current,
+          delta,
+          // La mini-gráfica solo dice algo con 3+ puntos; con menos, solo números.
+          points: serie.length >= 3 ? this.sparkline(serie) : '',
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
   });
+
+  /** ¿La última pesada trae composición? (para decidir si se pinta la sección). */
+  readonly hasComposition = computed(() => this.compositionTrends().length > 0);
+
+  /**
+   * Normaliza una serie de valores a puntos de un viewBox 100x24 para una
+   * mini-gráfica (misma idea que la del peso, reutilizable por métrica).
+   */
+  sparkline(values: number[]): string {
+    if (values.length < 2) return '';
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const rango = max - min || 1;
+    return values
+      .map((v, i) => {
+        const x = (i / (values.length - 1)) * 100;
+        const y = 22 - ((v - min) / rango) * 20;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+  }
 
   /** Con menos de 3 pesadas una gráfica no dice nada; se muestran los números. */
   readonly showChart = computed(() => (this.weight()?.entries.length ?? 0) >= 3);

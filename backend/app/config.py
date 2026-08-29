@@ -64,6 +64,9 @@ class Config:
     WITHINGS_REDIRECT_URI = os.environ.get('WITHINGS_REDIRECT_URI', '')
     WITHINGS_SCOPES = os.environ.get('WITHINGS_SCOPES', '')
     WITHINGS_SYNC_DAYS = int(os.environ.get('WITHINGS_SYNC_DAYS', 30))
+    # Ventana AMPLIA que se trae solo al conectar por primera vez, para rellenar
+    # de golpe el historico de peso y composicion (y ver el progreso desde ya).
+    WITHINGS_INITIAL_SYNC_DAYS = int(os.environ.get('WITHINGS_INITIAL_SYNC_DAYS', 365))
 
     # Carpeta del build de Angular a servir por Flask (mismo origen -> la cookie
     # del candado funciona sin CORS). Vacio en dev: el frontend lo sirve

@@ -148,23 +148,35 @@
                 </div>
               </div>
 
-              @if (composition().length) {
+              @if (hasComposition()) {
                 <div class="composition">
                   <p class="composition-title">
                     Composición corporal
                     <span class="composition-src">Withings</span>
                   </p>
-                  @for (row of composition(); track row.label) {
-                    <div class="comp-row">
-                      <span class="comp-label">
-                        <span class="comp-dot" [style.background]="row.color"></span>
-                        {{ row.label }}
-                      </span>
-                      <span class="comp-bar">
-                        <span class="comp-fill" [style.width.%]="row.value"
-                              [style.background]="row.color"></span>
-                      </span>
-                      <span class="comp-value">{{ row.value }}%</span>
+                  @for (m of compositionTrends(); track m.label) {
+                    <div class="comp-trend">
+                      <div class="comp-trend-head">
+                        <span class="comp-label">
+                          <span class="comp-dot" [style.background]="m.color"></span>
+                          {{ m.label }}
+                        </span>
+                        <span class="comp-now">
+                          <b>{{ m.current }}%</b>
+                          @if (m.delta !== null) {
+                            <span class="comp-delta">
+                              {{ m.delta > 0 ? '+' : '' }}{{ m.delta }}
+                              <small>desde el inicio</small>
+                            </span>
+                          }
+                        </span>
+                      </div>
+                      @if (m.points) {
+                        <svg class="comp-spark" viewBox="0 0 100 24" preserveAspectRatio="none"
+                             role="img" [attr.aria-label]="'Evolución de ' + m.label">
+                          <polyline [attr.points]="m.points" [style.stroke]="m.color" />
+                        </svg>
+                      }
                     </div>
                   }
                 </div>
