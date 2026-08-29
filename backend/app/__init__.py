@@ -14,6 +14,19 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # La cookie de sesión de Flask solo transporta el `state` de OAuth
+    # (Withings/Whoop). Ese `state` debe sobrevivir a la vuelta CROSS-SITE desde
+    # el proveedor al callback; con SameSite=Lax el navegador la descarta en ese
+    # salto (sobre todo en la PWA de iOS) y la validación del state fallaría. En
+    # producción (HTTPS) se marca SameSite=None + Secure para que sí viaje; en
+    # dev (HTTP) eso no es válido, así que se deja en Lax (el OAuth local va por
+    # localhost, mismo sitio, y no hay problema).
+    if app.config.get('COOKIE_SECURE'):
+        app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+        app.config['SESSION_COOKIE_SECURE'] = True
+    else:
+        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
     # En producción (Railway) el proxy termina el TLS y le pasa la petición a
     # Flask como http; sin esto, `url_for(_external=True)` genera URLs http:// y
     # el redirect_uri de OAuth (Withings/Whoop) no cuadra con el https:// que se

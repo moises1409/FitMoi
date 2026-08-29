@@ -19,8 +19,13 @@ auth_bp = Blueprint('auth', __name__)
 
 COOKIE_NAME = 'fitmoi_auth'
 COOKIE_MAX_AGE = 60 * 60 * 24 * 365  # un año
-# El propio candado y el chequeo de salud nunca se protegen.
-OPEN_PATHS = {'/health'}
+# El propio candado y el chequeo de salud nunca se protegen. Los callbacks de
+# OAuth tampoco: son una vuelta de una navegación CROSS-SITE (Withings/Whoop ->
+# app) y la cookie del candado (SameSite=Lax) no viaja en ese salto, así que
+# exigirla daría un 401 al volver de autorizar. No hace falta: el callback ya lo
+# protege el `state` de OAuth (anti-CSRF) y el flujo solo puede arrancarlo un
+# usuario autenticado desde `/authorize`, que SÍ está tras el candado.
+OPEN_PATHS = {'/health', '/api/withings/callback', '/api/whoop/callback'}
 OPEN_PREFIX = '/api/auth/'
 
 
