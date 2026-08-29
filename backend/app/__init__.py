@@ -56,7 +56,8 @@ def create_app():
 
     from .models import (  # noqa: F401
         activity, coach_conversation, energy_expenditure, food_log, food_template,
-        user_profile, weekly_review, weight_entry, whoop_token, withings_token
+        oauth_state, user_profile, weekly_review, weight_entry, whoop_token,
+        withings_token,
     )
 
     from .routes.food import food_bp
