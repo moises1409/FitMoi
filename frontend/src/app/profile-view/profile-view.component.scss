@@ -242,6 +242,7 @@ body.dark-theme .edit-link { color: var(--primary); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 
   .card-title { margin-bottom: 0; }
 }

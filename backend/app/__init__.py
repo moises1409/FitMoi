@@ -32,7 +32,7 @@ def create_app():
 
     from .models import (  # noqa: F401
         activity, coach_conversation, energy_expenditure, food_log, food_template,
-        user_profile, weekly_review, weight_entry, whoop_token
+        user_profile, weekly_review, weight_entry, whoop_token, withings_token
     )
 
     from .routes.food import food_bp
@@ -42,6 +42,7 @@ def create_app():
     from .routes.energy import energy_bp
     from .routes.review import review_bp
     from .routes.whoop import whoop_bp
+    from .routes.withings import withings_bp
     from .routes.coach import coach_bp
     app.register_blueprint(food_bp, url_prefix='/api/food')
     app.register_blueprint(library_bp, url_prefix='/api/library')
@@ -50,6 +51,7 @@ def create_app():
     app.register_blueprint(energy_bp, url_prefix='/api/energy')
     app.register_blueprint(review_bp, url_prefix='/api/review')
     app.register_blueprint(whoop_bp, url_prefix='/api/whoop')
+    app.register_blueprint(withings_bp, url_prefix='/api/withings')
     app.register_blueprint(coach_bp, url_prefix='/api/coach')
 
     # Candado de acceso (antes que las rutas queden expuestas). Opt-in por

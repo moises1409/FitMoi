@@ -1,11 +1,12 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../services/auth.service';
 import { ProfileService } from '../services/profile.service';
+import { WithingsService } from '../services/withings.service';
 import { ThemeToggleComponent } from '../shared/theme-toggle.component';
 import {
   ACTIVITY_LABELS,
@@ -35,9 +36,11 @@ type ListField = 'sports' | 'goals' | 'conditions' | 'injuries_current' | 'injur
 })
 export class ProfileViewComponent implements OnInit {
   private profiles = inject(ProfileService);
+  private withings = inject(WithingsService);
   private snack = inject(MatSnackBar);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   readonly profile = this.profiles.profile;
   /** Solo se ofrece cerrar sesión si el candado está activo. */
@@ -72,6 +75,29 @@ export class ProfileViewComponent implements OnInit {
   pendingWeightDelete = signal<number | null>(null);
 
   readonly weight = computed(() => this.profile()?.weight ?? null);
+
+  // ── Withings (báscula) ──
+  /** Configurada en el servidor: solo entonces se ofrece conectar. */
+  withingsConfigured = signal(false);
+  /** Conectada: se ofrece sincronizar y se muestra la composición. */
+  withingsConnected = signal(false);
+  syncingWithings = signal(false);
+
+  /**
+   * Composición corporal de la última pesada, lista para pintar. Solo hay datos
+   * si la pesada vino de la báscula Withings. Cada fila lleva su color de familia.
+   */
+  readonly composition = computed(() => {
+    const e = this.weight()?.current_entry;
+    if (!e || !e.has_composition) return [];
+    const rows: { label: string; value: number | null; color: string }[] = [
+      { label: 'Masa grasa', value: e.fat_ratio, color: '#0891B2' },
+      { label: 'Masa muscular', value: e.muscle_ratio, color: '#6C4DE0' },
+      { label: 'Masa ósea', value: e.bone_ratio, color: '#4D7C0F' },
+      { label: 'Agua corporal', value: e.water_ratio, color: '#0EA5E9' },
+    ];
+    return rows.filter((r) => r.value !== null);
+  });
 
   /** Con menos de 3 pesadas una gráfica no dice nada; se muestran los números. */
   readonly showChart = computed(() => (this.weight()?.entries.length ?? 0) >= 3);
@@ -156,6 +182,75 @@ export class ProfileViewComponent implements OnInit {
         this.loading.set(false);
         this.snack.open('No se pudo cargar tu perfil', 'OK');
       },
+    });
+
+    // Estado de la báscula: silencioso. Si no está configurada, no aparece nada.
+    this.withings.status().subscribe({
+      next: (s) => {
+        this.withingsConfigured.set(s.configured);
+        this.withingsConnected.set(s.connected);
+      },
+      error: () => {
+        this.withingsConfigured.set(false);
+        this.withingsConnected.set(false);
+      },
+    });
+
+    this.handleWithingsReturn();
+  }
+
+  /** Al volver del OAuth de Withings (?withings=connected|error) se avisa y se
+   * limpia la query para que un refresco no repita el mensaje. */
+  private handleWithingsReturn(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const outcome = params.get('withings');
+    if (!outcome) return;
+
+    if (outcome === 'connected') {
+      this.withingsConnected.set(true);
+      this.snack.open('Báscula Withings conectada', 'OK', { duration: 3000 });
+    } else if (outcome === 'error') {
+      const reason = params.get('reason') || 'No se pudo conectar la báscula';
+      this.snack.open(reason, 'OK', { duration: 6000 });
+    }
+    this.router.navigate([], { queryParams: {}, replaceUrl: true });
+  }
+
+  /** Lanza el flujo OAuth para conectar la báscula (navega fuera de la app). */
+  connectWithings(): void {
+    this.withings.connect();
+  }
+
+  /** Trae de Withings las pesadas recientes y recarga el perfil. */
+  syncWithings(): void {
+    if (this.syncingWithings()) return;
+    this.syncingWithings.set(true);
+    this.withings.sync().subscribe({
+      next: (res) => {
+        const nuevas = res.created + res.updated;
+        this.profiles.load().subscribe();
+        this.syncingWithings.set(false);
+        this.snack.open(
+          nuevas ? `Withings: ${nuevas} pesada(s) sincronizada(s)` : 'Withings: sin novedades',
+          'OK',
+          { duration: 3000 },
+        );
+      },
+      error: (err) => {
+        this.syncingWithings.set(false);
+        this.snack.open(err?.error?.error ?? 'No se pudo sincronizar con Withings', 'OK', { duration: 5000 });
+      },
+    });
+  }
+
+  /** Desconecta la báscula (olvida el token en el servidor). */
+  disconnectWithings(): void {
+    this.withings.disconnect().subscribe({
+      next: () => {
+        this.withingsConnected.set(false);
+        this.snack.open('Báscula Withings desconectada', 'OK', { duration: 3000 });
+      },
+      error: () => this.snack.open('No se pudo desconectar', 'OK'),
     });
   }
 

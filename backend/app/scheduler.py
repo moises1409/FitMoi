@@ -21,8 +21,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from . import db
-from .services import whoop_service
+from .services import whoop_service, withings_service
 from .services.whoop_service import WhoopError
+from .services.withings_service import WithingsError
 
 # Clave del advisory lock del job nocturno. Distinta de la de prepare_schema
 # (918273645) para que no compitan entre sí.
@@ -33,9 +34,10 @@ _JOB_ID = 'whoop-nightly-sync'
 def init_scheduler(app):
     """Arranca el scheduler si procede. Idempotente por proceso.
 
-    No arranca si `SCHEDULER_ENABLED` es falso, si Whoop no está configurado
-    (sin Client ID/Secret no hay nada que traer), ni en el proceso padre del
-    reloader de Werkzeug (dev), que duplicaría el job.
+    No arranca si `SCHEDULER_ENABLED` es falso, si no hay ninguna integración
+    configurada (ni Whoop ni Withings: sin Client ID/Secret no hay nada que
+    traer), ni en el proceso padre del reloader de Werkzeug (dev), que duplicaría
+    el job.
     """
     if not app.config.get('SCHEDULER_ENABLED', True):
         return None
@@ -46,8 +48,8 @@ def init_scheduler(app):
         return None
 
     with app.app_context():
-        if not whoop_service.is_configured():
-            app.logger.info('Scheduler: Whoop no configurado; sync automático desactivado.')
+        if not whoop_service.is_configured() and not withings_service.is_configured():
+            app.logger.info('Scheduler: ni Whoop ni Withings configurados; sync automático desactivado.')
             return None
 
     tz = app.config.get('APP_TIMEZONE', 'UTC')
@@ -63,7 +65,7 @@ def init_scheduler(app):
         misfire_grace_time=3600,
     )
     scheduler.start()
-    app.logger.info('Scheduler iniciado: sync de Whoop cada día a las 00:00 (%s).', tz)
+    app.logger.info('Scheduler iniciado: sync de Whoop/Withings cada día a las 00:00 (%s).', tz)
     return scheduler
 
 
@@ -86,15 +88,29 @@ def _nightly_sync(app) -> None:
 
 
 def _run_sync(app) -> None:
-    if not whoop_service.is_connected():
-        app.logger.info('Sync nocturno: Whoop sin conectar; se omite.')
-        return
-    try:
-        energy = whoop_service.sync_daily_energy()
-        workouts = whoop_service.sync_recent_workouts()
-    except WhoopError as exc:
-        # Fallo transitorio (token, red): se reintentará mañana; no rompe el proceso.
-        app.logger.warning('Sync nocturno de Whoop falló: %s', exc)
-        db.session.rollback()
-        return
-    app.logger.info('Sync nocturno de Whoop OK: gasto=%s workouts=%s', energy, workouts)
+    """Sincroniza de noche cada integración conectada. Un fallo en una no impide
+    la otra: se aísla el bloque de cada servicio."""
+    ran = False
+
+    if whoop_service.is_connected():
+        ran = True
+        try:
+            energy = whoop_service.sync_daily_energy()
+            workouts = whoop_service.sync_recent_workouts()
+            app.logger.info('Sync nocturno de Whoop OK: gasto=%s workouts=%s', energy, workouts)
+        except WhoopError as exc:
+            # Fallo transitorio (token, red): se reintentará mañana; no rompe el proceso.
+            app.logger.warning('Sync nocturno de Whoop falló: %s', exc)
+            db.session.rollback()
+
+    if withings_service.is_connected():
+        ran = True
+        try:
+            weights = withings_service.sync_measurements()
+            app.logger.info('Sync nocturno de Withings OK: pesadas=%s', weights)
+        except WithingsError as exc:
+            app.logger.warning('Sync nocturno de Withings falló: %s', exc)
+            db.session.rollback()
+
+    if not ran:
+        app.logger.info('Sync nocturno: ninguna integración conectada; se omite.')
