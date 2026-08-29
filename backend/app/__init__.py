@@ -3,6 +3,7 @@ from flask import Flask, abort, send_file, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
+from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
 
 db = SQLAlchemy()
@@ -12,6 +13,16 @@ migrate = Migrate()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # En producción (Railway) el proxy termina el TLS y le pasa la petición a
+    # Flask como http; sin esto, `url_for(_external=True)` genera URLs http:// y
+    # el redirect_uri de OAuth (Withings/Whoop) no cuadra con el https:// que se
+    # registró en cada portal (redirect_uri_mismatch). ProxyFix hace que Flask
+    # confíe en X-Forwarded-Proto/Host del proxy y reconstruya el esquema y host
+    # reales. Se aplica solo si hay un proxy delante (TRUST_PROXY, activo por
+    # defecto): en dev, sin proxy, esas cabeceras no existen y no cambia nada.
+    if app.config.get('TRUST_PROXY', True):
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 

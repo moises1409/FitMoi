@@ -27,6 +27,12 @@ class Config:
     # La cookie solo viaja por HTTPS cuando esto es true: ponlo a 1 en produccion.
     COOKIE_SECURE = _env_bool('COOKIE_SECURE', False)
 
+    # Confiar en las cabeceras X-Forwarded-* del proxy (Railway) para reconstruir
+    # el esquema/host reales: sin esto, url_for(_external=True) genera http:// y
+    # el redirect_uri de OAuth no cuadra con el https:// registrado. Activo por
+    # defecto; ponlo a 0 solo si el servicio queda expuesto SIN un proxy delante.
+    TRUST_PROXY = _env_bool('TRUST_PROXY', True)
+
     # Zona horaria del usuario: determina que cuenta como "hoy" en la vista diaria.
     APP_TIMEZONE = os.environ.get('APP_TIMEZONE', 'Europe/Madrid')
 
