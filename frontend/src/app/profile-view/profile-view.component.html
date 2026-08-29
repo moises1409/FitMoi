@@ -81,11 +81,24 @@
           <div class="weight-card card">
             <div class="weight-head">
               <p class="card-title"><mat-icon>monitor_weight</mat-icon> Tu peso</p>
-              @if (!showWeightForm()) {
-                <button class="edit-link" type="button" (click)="openWeightForm()">
-                  <mat-icon>add</mat-icon> Registrar
-                </button>
-              }
+              <div class="weight-actions">
+                @if (withingsConnected()) {
+                  <button class="edit-link" type="button" (click)="syncWithings()"
+                          [disabled]="syncingWithings()">
+                    <mat-icon [class.spin]="syncingWithings()">sync</mat-icon>
+                    {{ syncingWithings() ? 'Sincronizando…' : 'Withings' }}
+                  </button>
+                } @else if (withingsConfigured()) {
+                  <button class="edit-link" type="button" (click)="connectWithings()">
+                    <mat-icon>bluetooth</mat-icon> Conectar báscula
+                  </button>
+                }
+                @if (!showWeightForm()) {
+                  <button class="edit-link" type="button" (click)="openWeightForm()">
+                    <mat-icon>add</mat-icon> Registrar
+                  </button>
+                }
+              </div>
             </div>
 
             @if (w.due) {
@@ -135,6 +148,28 @@
                 </div>
               </div>
 
+              @if (composition().length) {
+                <div class="composition">
+                  <p class="composition-title">
+                    Composición corporal
+                    <span class="composition-src">Withings</span>
+                  </p>
+                  @for (row of composition(); track row.label) {
+                    <div class="comp-row">
+                      <span class="comp-label">
+                        <span class="comp-dot" [style.background]="row.color"></span>
+                        {{ row.label }}
+                      </span>
+                      <span class="comp-bar">
+                        <span class="comp-fill" [style.width.%]="row.value"
+                              [style.background]="row.color"></span>
+                      </span>
+                      <span class="comp-value">{{ row.value }}%</span>
+                    </div>
+                  }
+                </div>
+              }
+
               @if (showChart()) {
                 <svg class="weight-chart" viewBox="0 0 100 32" preserveAspectRatio="none"
                      role="img" aria-label="Evolución de tu peso">
@@ -145,7 +180,12 @@
               <div class="weight-list">
                 @for (e of reversedEntries(); track e.id) {
                   <div class="weight-row">
-                    <span class="wr-date">{{ e.measured_on | date:'d MMM y' }}</span>
+                    <span class="wr-date">
+                      {{ e.measured_on | date:'d MMM y' }}
+                      @if (e.source === 'withings') {
+                        <mat-icon class="wr-src" aria-label="Báscula Withings">monitor_weight</mat-icon>
+                      }
+                    </span>
                     <span class="wr-kg">{{ e.weight_kg }} kg</span>
                     <span class="wr-delta">
                       @if (deltaOfEntry(e); as d) {

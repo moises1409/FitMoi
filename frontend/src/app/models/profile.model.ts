@@ -44,13 +44,23 @@ export const GOAL_DIRECTIONS = [
   { value: 'gain', label: 'Ganar masa' },
 ];
 
-/** Una pesada del histórico. */
+/** Una pesada del histórico. Los campos de composición solo llegan de Withings. */
 export interface WeightEntry {
   id: number;
   weight_kg: number;
   measured_on: string;
-  source: 'manual' | 'chat';
+  source: 'manual' | 'chat' | 'withings';
   note: string | null;
+  // ── Composición corporal (báscula Withings); null en una pesada manual ──
+  fat_ratio: number | null;       // % de masa grasa
+  fat_mass_kg: number | null;
+  muscle_mass_kg: number | null;
+  bone_mass_kg: number | null;
+  hydration_kg: number | null;
+  muscle_ratio: number | null;    // % derivado respecto al peso
+  bone_ratio: number | null;
+  water_ratio: number | null;
+  has_composition: boolean;
 }
 
 /** Evolución del peso y si toca volver a pesarse. */
@@ -58,6 +68,8 @@ export interface WeightSummary {
   /** En orden cronológico, de la más antigua a la más reciente. */
   entries: WeightEntry[];
   current: number | null;
+  /** Última pesada completa: lleva la composición corporal para la ficha. */
+  current_entry: WeightEntry | null;
   change_last: number | null;
   change_total: number | null;
   days_since: number | null;

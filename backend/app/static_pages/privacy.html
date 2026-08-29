@@ -109,19 +109,28 @@
       <li><strong>Actividad física</strong>: sesiones registradas manualmente y,
         cuando se conecta la cuenta de Whoop, los datos de entrenamiento que
         FitMoi obtiene del API de Whoop.</li>
+      <li><strong>Composición corporal</strong>: cuando se conecta la báscula
+        Withings, el peso y la composición corporal (masa grasa, muscular, ósea
+        e hidratación) que FitMoi obtiene del API de Withings.</li>
     </ul>
 
-    <h2>3. Datos obtenidos de Whoop</h2>
+    <h2>3. Datos obtenidos de dispositivos conectados (Whoop y Withings)</h2>
     <p>
       Si el usuario conecta su cuenta de Whoop, FitMoi accede —con su
       autorización explícita mediante OAuth— a sus datos de entrenamiento
       (<em>workouts</em>): entre ellos la <strong>energía gastada (calorías)</strong>,
       la duración, la frecuencia cardíaca y métricas asociadas al esfuerzo.
     </p>
+    <p>
+      Si el usuario conecta su báscula Withings, FitMoi accede —con su
+      autorización explícita mediante OAuth (permiso <em>user.metrics</em>)— a sus
+      mediciones de la báscula: <strong>peso y composición corporal</strong>
+      (masa grasa, muscular, ósea e hidratación).
+    </p>
     <ul>
-      <li>Estos datos se usan <strong>únicamente</strong> para calcular el gasto
-        energético diario dentro de FitMoi y complementar el seguimiento
-        nutricional del propio usuario.</li>
+      <li>Estos datos se usan <strong>únicamente</strong> para el seguimiento del
+        propio usuario dentro de FitMoi (gasto energético diario en el caso de
+        Whoop; histórico de peso y composición corporal en el caso de Withings).</li>
       <li><strong>No se comparten con terceros</strong> ni se usan con fines
         publicitarios o de perfilado.</li>
       <li>Se almacenan en la base de datos privada de la aplicación (ver punto 5).</li>
@@ -151,12 +160,15 @@
       de contacto.
     </p>
 
-    <h2>7. Revocar el acceso a Whoop</h2>
+    <h2>7. Revocar el acceso a los dispositivos conectados</h2>
     <p>
       El usuario puede revocar en cualquier momento el acceso de FitMoi a sus
       datos de Whoop desde la configuración de aplicaciones de su cuenta de Whoop
-      (<a href="https://app.whoop.com" target="_blank" rel="noopener">app.whoop.com</a>).
-      Al revocarlo, FitMoi deja de sincronizar nuevos datos de entrenamiento.
+      (<a href="https://app.whoop.com" target="_blank" rel="noopener">app.whoop.com</a>),
+      y el acceso a Withings desde la configuración de su cuenta de Withings
+      (<a href="https://account.withings.com" target="_blank" rel="noopener">account.withings.com</a>).
+      Al revocarlo, FitMoi deja de sincronizar nuevos datos. También puede
+      desconectar cada servicio desde la propia aplicación.
     </p>
 
     <h2>8. Cesión a terceros</h2>

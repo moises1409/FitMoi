@@ -1239,3 +1239,73 @@ body.dark-theme .tag.warn { color: var(--fat-color); }
 }
 
 .coach-arrow { flex-shrink: 0; color: var(--text-muted); }
+
+/* ── Composición corporal de la báscula Withings (perfil) ── */
+.weight-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.weight-actions .edit-link mat-icon.spin { animation: withings-spin 0.9s linear infinite; }
+@keyframes withings-spin { to { transform: rotate(360deg); } }
+
+.composition { margin-top: 16px; }
+.composition-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.composition-src {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  background: var(--accent-subtle);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+.comp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.comp-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 42%;
+  font-size: 12px;
+  color: var(--text);
+}
+.comp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.comp-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent-subtle);
+  overflow: hidden;
+}
+.comp-fill { display: block; height: 100%; border-radius: 999px; }
+.comp-value {
+  flex: 0 0 auto;
+  min-width: 42px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.wr-src {
+  font-size: 13px;
+  height: 13px;
+  width: 13px;
+  vertical-align: middle;
+  margin-left: 3px;
+  color: var(--text-muted);
+}
