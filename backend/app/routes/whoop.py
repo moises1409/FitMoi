@@ -20,15 +20,15 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import (
-    Blueprint, current_app, jsonify, redirect, request, session, url_for,
+    Blueprint, current_app, jsonify, redirect, request, url_for,
 )
 
-from ..services import whoop_service
+from ..services import oauth_state_service, whoop_service
 from ..services.whoop_service import WhoopError
 
 whoop_bp = Blueprint('whoop', __name__)
 
-_STATE_KEY = 'whoop_oauth_state'
+_PROVIDER = 'whoop'
 # A dónde volver en el SPA tras conectar (mismo origen en producción).
 _FRONTEND_RETURN = '/activity'
 
@@ -57,7 +57,7 @@ def authorize():
         return jsonify({'error': 'Whoop no está configurado en el servidor.'}), 503
 
     state = secrets.token_urlsafe(24)  # > 8 chars, anti-CSRF
-    session[_STATE_KEY] = state
+    oauth_state_service.issue(_PROVIDER, state)
     return redirect(whoop_service.authorize_url(state, _callback_uri()))
 
 
@@ -69,8 +69,7 @@ def callback():
 
     code = request.args.get('code')
     state = request.args.get('state')
-    expected = session.pop(_STATE_KEY, None)
-    if not code or not state or state != expected:
+    if not code or not oauth_state_service.consume(_PROVIDER, state):
         return _fail('Estado OAuth inválido; vuelve a intentar la conexión.')
 
     try:
