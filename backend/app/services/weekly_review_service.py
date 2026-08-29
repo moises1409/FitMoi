@@ -47,7 +47,12 @@ tecnicismos innecesarios ni paja.
 Reglas:
 - Usa SOLO las cifras que te doy. No inventes números ni completes lo que falte.
 - Cada elogio o crítica va anclado a una cifra concreta (kcal, gramos de
-  proteína, sesiones, minutos, peso).
+  proteína, sesiones, minutos, peso, composición corporal).
+- Si hay datos de composición corporal (grasa, músculo, hueso, agua de la
+  báscula, en `weight.composition`), di explícitamente si hay AVANCE o retroceso
+  respecto al inicio de la semana o a la semana anterior, anclado a los
+  porcentajes/kg (p. ej. músculo, grasa). Es clave para el objetivo de
+  recomposición. Si no hay datos de composición esta semana, no lo menciones.
 - Ten en cuenta el objetivo declarado (perder grasa, mantener, ganar, recomp) y
   las lesiones o condiciones médicas: no recomiendes nada que las ignore.
 - Sé honesto pero motivador: si la semana fue floja, dilo, pero con una salida.
@@ -265,8 +270,40 @@ def _energy_metrics(week: dict) -> dict:
     }
 
 
+# Métricas de composición corporal (báscula Withings) y su etiqueta para el LLM.
+_COMPOSITION_METRICS = (
+    ('fat_ratio', 'grasa_pct'),
+    ('muscle_ratio', 'musculo_pct'),
+    ('bone_ratio', 'hueso_pct'),
+    ('water_ratio', 'agua_pct'),
+    ('muscle_mass_kg', 'musculo_kg'),
+    ('fat_mass_kg', 'grasa_kg'),
+)
+
+
+def _composition_metrics(filas: list) -> dict:
+    """Inicio, fin y variación de cada métrica de composición dentro de la semana.
+
+    Solo cuentan las pesadas de báscula que traen cada dato (una pesada manual no
+    lleva composición); una métrica sin datos en la semana se omite.
+    """
+    dicts = [f.to_dict() for f in filas]  # ya en orden ascendente por fecha
+    out: dict = {}
+    for key, label in _COMPOSITION_METRICS:
+        serie = [d[key] for d in dicts if d.get(key) is not None]
+        if not serie:
+            continue
+        out[label] = {
+            'inicio': serie[0],
+            'fin': serie[-1],
+            'variacion': round(serie[-1] - serie[0], 1) if len(serie) > 1 else None,
+        }
+    return out
+
+
 def _weight_metrics(week: dict) -> dict:
-    """Peso al principio y al final de la semana, y su variación."""
+    """Peso y composición corporal al principio y al final de la semana, y su
+    variación."""
     filas = (
         WeightEntry.query
         .filter(WeightEntry.measured_on >= week['week_start'],
@@ -275,7 +312,7 @@ def _weight_metrics(week: dict) -> dict:
         .all()
     )
     if not filas:
-        return {'entries': 0, 'start': None, 'end': None, 'delta': None}
+        return {'entries': 0, 'start': None, 'end': None, 'delta': None, 'composition': {}}
 
     start_kg = filas[0].weight_kg
     end_kg = filas[-1].weight_kg
@@ -284,6 +321,8 @@ def _weight_metrics(week: dict) -> dict:
         'start': round(start_kg, 1),
         'end': round(end_kg, 1),
         'delta': round(end_kg - start_kg, 1) if len(filas) > 1 else None,
+        # Composición corporal de la báscula (grasa, músculo, hueso, agua).
+        'composition': _composition_metrics(filas),
     }
 
 
