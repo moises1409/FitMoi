@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS withings_tokens (
 CREATE INDEX IF NOT EXISTS ix_withings_tokens_user_id ON withings_tokens (withings_user_id);
 
 -- Composición corporal de la báscula: solo la rellena una pesada de Withings;
--- una manual las deja en NULL. La grasa es %, el resto son masas en kg.
+-- una manual las deja en NULL. La grasa es porcentaje, el resto masas en kg.
 ALTER TABLE weight_entries
   ADD COLUMN IF NOT EXISTS fat_ratio      DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS fat_mass_kg    DOUBLE PRECISION,

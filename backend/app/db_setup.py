@@ -88,7 +88,18 @@ def prepare_schema(app) -> None:
                     if name in applied:
                         continue
                     sql = open(os.path.join(MIGRATIONS_DIR, name), encoding='utf-8').read()
-                    conn.exec_driver_sql(sql)  # cada .sql trae su propio BEGIN/COMMIT
+                    # El .sql se ejecuta VERBATIM por el cursor DBAPI, sin pasar
+                    # parámetros: `exec_driver_sql(sql)` (sin params) le entrega a
+                    # psycopg2 un immutabledict vacío que, según la versión, toma
+                    # como secuencia posicional y revienta con "immutabledict is
+                    # not a sequence"; además, sin segundo argumento psycopg2 no
+                    # interpreta los `%` del script (p. ej. un LIKE '%x%'). Cada
+                    # .sql trae su propio BEGIN/COMMIT.
+                    cursor = conn.connection.cursor()
+                    try:
+                        cursor.execute(sql)
+                    finally:
+                        cursor.close()
                     conn.exec_driver_sql(
                         'INSERT INTO schema_migrations (filename) VALUES (%s)'
                         ' ON CONFLICT DO NOTHING',
