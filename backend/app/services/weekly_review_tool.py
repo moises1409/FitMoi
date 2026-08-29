@@ -25,7 +25,9 @@ TOOL = {
             'resumen': {
                 'type': 'string',
                 'description': '2-3 frases con la foto general de la semana en '
-                               'nutrición y actividad, en relación con el objetivo.',
+                               'nutrición y actividad, en relación con el objetivo. '
+                               'Si hay datos de composición corporal, menciona su '
+                               'evolución (avance o no en grasa/músculo).',
             },
             'lo_bueno': {
                 **_LIST_OF_TEXT,

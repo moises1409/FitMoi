@@ -53,7 +53,7 @@ MAX_MESSAGE = 2000
 
 SYSTEM = """Eres el entrenador personal y nutricionista de esta persona dentro de
 su app FitMoi. Te conoce y confía en ti: le has visto la comida, los
-entrenamientos, el peso y el gasto de las últimas semanas.
+entrenamientos, el peso, la composición corporal y el gasto de las últimas semanas.
 
 Cómo hablas:
 - En español, de tú, cercano y directo. Nada de tecnicismos innecesarios ni paja.
@@ -62,11 +62,15 @@ Cómo hablas:
 
 Cómo respondes:
 - Apóyate SIEMPRE en sus datos. Ancla lo que digas a cifras reales (kcal, gramos
-  de proteína, sesiones, minutos, peso, gasto) en vez de generalidades.
-- Tienes en el contexto su perfil, sus objetivos del día, su peso y un resumen de
-  las últimas semanas con el detalle de la semana en curso. Si necesitas el
-  detalle de un día concreto o de un rango que no está ahí, usa las herramientas
-  para consultarlo antes de responder. No te inventes números que no tengas.
+  de proteína, sesiones, minutos, peso, composición corporal, gasto) en vez de
+  generalidades.
+- Tienes en el contexto su perfil, sus objetivos del día, su peso y su composición
+  corporal (grasa, músculo, hueso y agua, cuando usa la báscula Withings, con la
+  evolución en las últimas pesadas) y un resumen de las últimas semanas con el
+  detalle de la semana en curso. Si necesitas el detalle de un día concreto o de
+  un rango que no está ahí, usa las herramientas para consultarlo antes de
+  responder. No te inventes números que no tengas. Si te preguntan por la
+  composición y no hay datos aún, dile que se pese con la báscula conectada.
 - Ten en cuenta su objetivo (perder grasa, mantener, ganar, recomposición) y sus
   lesiones o condiciones médicas: nunca recomiendes nada que las ignore.
 - Si te falta un dato para responder bien, pídeselo o dile cómo registrarlo.
@@ -200,20 +204,44 @@ def _compact_week(metrics: dict, include_days: bool = False) -> dict:
     return resumen
 
 
+def _composition_of(entry: dict) -> dict | None:
+    """Composición corporal (báscula Withings) de una pesada, compacta y solo con
+    los valores presentes. None si esa pesada no trae composición (p. ej. manual)."""
+    if not entry or not entry.get('has_composition'):
+        return None
+    campos = {
+        'grasa_pct': entry.get('fat_ratio'),
+        'musculo_pct': entry.get('muscle_ratio'),
+        'hueso_pct': entry.get('bone_ratio'),
+        'agua_pct': entry.get('water_ratio'),
+        'musculo_kg': entry.get('muscle_mass_kg'),
+        'grasa_kg': entry.get('fat_mass_kg'),
+    }
+    return {k: v for k, v in campos.items() if v is not None}
+
+
 def _weight_context(profile) -> dict:
-    """Estado y evolución del peso, compacto: lo esencial + las últimas pesadas."""
+    """Estado y evolución del peso + composición corporal, compacto: lo esencial
+    y las últimas pesadas (con su composición si la báscula la trajo)."""
     resumen = weight_service.summary(profile)
     entries = resumen.get('entries') or []
+
+    pesadas = []
+    for e in entries[-8:]:  # las más recientes, ya en orden cronológico
+        fila = {'fecha': e.get('measured_on'), 'kg': e.get('weight_kg')}
+        comp = _composition_of(e)
+        if comp:
+            fila['composicion'] = comp
+        pesadas.append(fila)
+
     return {
         'actual_kg': resumen.get('current'),
         'cambio_ultima_pesada': resumen.get('change_last'),
         'cambio_total': resumen.get('change_total'),
         'dias_desde_ultima': resumen.get('days_since'),
-        # Las pesadas más recientes (ya en orden cronológico), como máximo 8.
-        'ultimas_pesadas': [
-            {'fecha': e.get('measured_on'), 'kg': e.get('weight_kg')}
-            for e in entries[-8:]
-        ],
+        # Composición de la última pesada, para tenerla a mano.
+        'composicion_actual': _composition_of(resumen.get('current_entry') or {}),
+        'ultimas_pesadas': pesadas,
     }
 
 
