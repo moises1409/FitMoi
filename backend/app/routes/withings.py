@@ -75,7 +75,9 @@ def callback():
 
     try:
         withings_service.exchange_code(code, _callback_uri())
-        # Primera sincronización nada más conectar, para que la báscula aparezca ya.
+        # Primera sincronización nada más conectar. sync_measurements detecta que
+        # aún no hay datos de la báscula y trae una ventana amplia (histórico
+        # completo) para poder ver el progreso desde ya.
         withings_service.sync_measurements()
     except WithingsError as exc:
         return _fail(str(exc))

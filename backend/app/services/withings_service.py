@@ -30,6 +30,7 @@ import httpx
 from flask import current_app
 
 from .. import db
+from ..models.weight_entry import WeightEntry
 from ..models.withings_token import WithingsToken
 from . import profile_service, weight_service
 
@@ -198,7 +199,10 @@ def sync_measurements(
     """Trae las mediciones de la báscula en [since, until) y las vuelca en
     `weight_entries` (una fila por día natural, `source='withings'`).
 
-    Sin argumentos sincroniza los últimos `WITHINGS_SYNC_DAYS` días. Para un día
+    Sin argumentos sincroniza una ventana reciente (`WITHINGS_SYNC_DAYS`), salvo
+    la PRIMERA vez —cuando aún no hay ninguna pesada de la báscula—, en la que se
+    trae una ventana AMPLIA (`WITHINGS_INITIAL_SYNC_DAYS`, un año por defecto)
+    para rellenar de golpe el histórico de peso y composición. Para un día
     concreto, pásale los límites de ese día (lo hace la ruta a partir de
     ?date=YYYY-MM-DD). Cada grupo de medida se asigna al día natural de su fecha
     en la zona del usuario (`APP_TIMEZONE`); si un día tiene varias pesadas se
@@ -211,8 +215,13 @@ def sync_measurements(
     if token is None:
         raise WithingsError('Withings no está conectado.')
 
-    days = int(current_app.config.get('WITHINGS_SYNC_DAYS', 30) or 30)
     if since is None:
+        # La primera sincronización (aún sin datos de la báscula) barre una
+        # ventana amplia para traer todo el histórico; luego, ventana corta.
+        ya_hay = db.session.query(WeightEntry.id).filter_by(source='withings').first() is not None
+        clave = 'WITHINGS_SYNC_DAYS' if ya_hay else 'WITHINGS_INITIAL_SYNC_DAYS'
+        por_defecto = 30 if ya_hay else 365
+        days = int(current_app.config.get(clave, por_defecto) or por_defecto)
         since = datetime.now(timezone.utc) - timedelta(days=days)
     if until is None:
         until = datetime.now(timezone.utc)
