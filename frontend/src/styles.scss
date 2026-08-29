@@ -1207,3 +1207,35 @@ select.field-input {
 
 body.dark-theme .tag { color: var(--primary); }
 body.dark-theme .tag.warn { color: var(--fat-color); }
+
+/* ── Acceso al entrenador-agente (tarjeta de navegación) ── */
+.coach-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.coach-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--primary-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mat-icon { color: var(--primary); }
+}
+
+.coach-text { flex: 1; min-width: 0; }
+
+.coach-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.coach-arrow { flex-shrink: 0; color: var(--text-muted); }

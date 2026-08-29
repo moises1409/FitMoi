@@ -51,6 +51,12 @@ export const routes: Routes = [
     loadComponent: () => import('./weekly-review/weekly-review.component').then(m => m.WeeklyReviewComponent),
   },
   {
+    path: 'coach',
+    title: 'Tu entrenador · FitMoi',
+    canActivate: [authGuard],
+    loadComponent: () => import('./coach-chat/coach-chat.component').then(m => m.CoachChatComponent),
+  },
+  {
     path: 'profile',
     title: 'Mi perfil · FitMoi',
     canActivate: [authGuard],
