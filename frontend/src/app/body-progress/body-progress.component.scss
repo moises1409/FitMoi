@@ -1,5 +1,9 @@
 :host { display: block; }
 
+// `.card` global no lleva padding propio (lo pone cada variante); estas tarjetas
+// usan `.card` a secas, así que se lo damos aquí.
+.card { padding: 16px; }
+
 .section-head {
   display: flex;
   align-items: center;
