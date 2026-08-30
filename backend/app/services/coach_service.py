@@ -470,7 +470,7 @@ def chat(conv: CoachConversation, message: str) -> dict:
     """Un turno de charla con el entrenador. Resuelve las herramientas que pida y
     devuelve la respuesta final en texto."""
     client = anthropic.Anthropic(api_key=_api_key())
-    model = current_app.config['ANTHROPIC_MODEL']
+    model = current_app.config['ANTHROPIC_COACH_MODEL']
 
     profile = profile_service.get_or_create()
     targets = targets_service.compute(profile, profile_service.estimate_energy(profile))

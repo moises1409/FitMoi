@@ -20,6 +20,10 @@ class Config:
 
     ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
     ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-sonnet-4-6')
+    # Modelo para las tareas de razonamiento largo (el chat del coach y el
+    # resumen semanal): merece el modelo mas capaz aunque el analisis de comida
+    # siga en el modelo por defecto (mas barato y con vision suficiente).
+    ANTHROPIC_COACH_MODEL = os.environ.get('ANTHROPIC_COACH_MODEL', 'claude-opus-4-8')
 
     # Candado de acceso. Vacio = desactivado (desarrollo local). Al definirlo
     # (produccion/Railway) toda la API exige la cookie de sesion. Ver app/auth.py.

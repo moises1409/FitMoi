@@ -472,7 +472,7 @@ def _call_llm(metrics: dict, previous: dict | None) -> tuple[dict, str]:
     """Pide al LLM que redacte el resumen. Devuelve (narrativa, modelo)."""
     profile = profile_service.get_or_create()
     client = anthropic.Anthropic(api_key=_api_key())
-    model = current_app.config['ANTHROPIC_MODEL']
+    model = current_app.config['ANTHROPIC_COACH_MODEL']
 
     response = client.messages.create(
         model=model,
