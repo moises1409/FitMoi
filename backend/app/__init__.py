@@ -55,9 +55,9 @@ def create_app():
     app.config['UPLOAD_FOLDER_ABS'] = upload_dir
 
     from .models import (  # noqa: F401
-        activity, coach_conversation, energy_expenditure, food_log, food_template,
-        oauth_state, user_profile, weekly_review, weight_entry, whoop_token,
-        withings_token,
+        activity, body_measurement, body_photo, coach_conversation,
+        energy_expenditure, food_log, food_template, oauth_state, user_profile,
+        weekly_review, weight_entry, whoop_token, withings_token,
     )
 
     from .routes.food import food_bp
@@ -68,6 +68,7 @@ def create_app():
     from .routes.review import review_bp
     from .routes.whoop import whoop_bp
     from .routes.withings import withings_bp
+    from .routes.body import body_bp
     from .routes.coach import coach_bp
     app.register_blueprint(food_bp, url_prefix='/api/food')
     app.register_blueprint(library_bp, url_prefix='/api/library')
@@ -77,6 +78,7 @@ def create_app():
     app.register_blueprint(review_bp, url_prefix='/api/review')
     app.register_blueprint(whoop_bp, url_prefix='/api/whoop')
     app.register_blueprint(withings_bp, url_prefix='/api/withings')
+    app.register_blueprint(body_bp, url_prefix='/api/body')
     app.register_blueprint(coach_bp, url_prefix='/api/coach')
 
     # Candado de acceso (antes que las rutas queden expuestas). Opt-in por

@@ -69,6 +69,12 @@ export const routes: Routes = [
     loadComponent: () => import('./profile-chat/profile-chat.component').then(m => m.ProfileChatComponent),
   },
   {
+    path: 'progress',
+    title: 'Progreso corporal · FitMoi',
+    canActivate: [authGuard],
+    loadComponent: () => import('./body-progress/body-progress.component').then(m => m.BodyProgressComponent),
+  },
+  {
     path: 'activity',
     title: 'Registrar actividad · FitMoi',
     canActivate: [authGuard],

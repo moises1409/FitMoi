@@ -1,0 +1,188 @@
+<div class="page">
+
+  <header class="top-bar">
+    <a class="top-bar-icon" routerLink="/profile" aria-label="Volver al perfil">
+      <mat-icon>chevron_left</mat-icon>
+    </a>
+    <div style="flex:1">
+      <div class="top-bar-title">Progreso corporal</div>
+      <div class="top-bar-sub">Medidas de cinta y fotos en el tiempo</div>
+    </div>
+    <app-theme-toggle />
+  </header>
+
+  @if (loading()) {
+    <div class="skeleton-card"></div>
+  } @else {
+
+    <!-- ─────────────── Medidas ─────────────── -->
+    <div class="card">
+      <div class="section-head">
+        <p class="card-title"><mat-icon>straighten</mat-icon> Medidas (cm)</p>
+        @if (!showMeasureForm()) {
+          <button class="edit-link" type="button" (click)="showMeasureForm.set(true)">
+            <mat-icon>add</mat-icon> Registrar
+          </button>
+        }
+      </div>
+
+      @if (showMeasureForm()) {
+        <div class="form-grid">
+          <label class="field">
+            <span>Fecha</span>
+            <input class="field-input" type="date" [(ngModel)]="measureDate">
+          </label>
+          @for (f of fields; track f.key) {
+            <label class="field">
+              <span>{{ f.label }}</span>
+              <input class="field-input" type="number" step="0.1" min="10" max="300"
+                     [(ngModel)]="measure[f.key]" placeholder="cm">
+            </label>
+          }
+          <label class="field field-wide">
+            <span>Nota (opcional)</span>
+            <input class="field-input" type="text" [(ngModel)]="measureNote"
+                   placeholder="p. ej. en ayunas por la mañana">
+          </label>
+          <div class="form-actions">
+            <button class="btn-primary" type="button" (click)="saveMeasurement()"
+                    [disabled]="savingMeasure()">
+              {{ savingMeasure() ? 'Guardando…' : 'Guardar' }}
+            </button>
+            <button class="btn-ghost" type="button" (click)="showMeasureForm.set(false)">Cancelar</button>
+          </div>
+        </div>
+      }
+
+      @if (trends().length) {
+        <div class="trends">
+          @for (t of trends(); track t.key) {
+            <div class="trend">
+              <div class="trend-head">
+                <span class="trend-label">{{ t.label }}</span>
+                <span class="trend-now">
+                  <b>{{ t.current }}</b> cm
+                  @if (t.change_last !== null) {
+                    <span class="trend-delta" [class.down]="t.change_last < 0" [class.up]="t.change_last > 0">
+                      {{ t.change_last > 0 ? '+' : '' }}{{ t.change_last }}
+                    </span>
+                  }
+                </span>
+              </div>
+              @if (t.points) {
+                <svg class="trend-spark" viewBox="0 0 100 24" preserveAspectRatio="none"
+                     role="img" [attr.aria-label]="'Evolución de ' + t.label">
+                  <polyline [attr.points]="t.points" />
+                </svg>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="takes">
+          <p class="takes-title">Histórico de tomas</p>
+          @for (e of recentTakes(); track e.id) {
+            <div class="take">
+              <span class="take-date">{{ e.measured_on | date:'d MMM y' }}</span>
+              <span class="take-vals">
+                @for (v of valuesOf(e); track v.label) {
+                  <span class="take-chip">{{ v.label }} {{ v.value }}</span>
+                }
+                @if (e.note) { <span class="take-note">{{ e.note }}</span> }
+              </span>
+              <button class="wr-del" type="button" (click)="requestMeasureDelete(e)"
+                      [attr.aria-label]="'Eliminar toma del ' + e.measured_on">
+                <mat-icon>{{ pendingMeasureDelete() === e.id ? 'delete_forever' : 'close' }}</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      } @else if (!showMeasureForm()) {
+        <p class="empty">Aún no has registrado medidas. Pulsa «Registrar» para empezar.</p>
+      }
+    </div>
+
+    <!-- ─────────────── Fotos ─────────────── -->
+    <div class="card">
+      <div class="section-head">
+        <p class="card-title"><mat-icon>photo_camera</mat-icon> Fotos de progreso</p>
+        @if (!showPhotoForm()) {
+          <button class="edit-link" type="button" (click)="showPhotoForm.set(true)">
+            <mat-icon>add</mat-icon> Añadir foto
+          </button>
+        }
+      </div>
+
+      @if (showPhotoForm()) {
+        <div class="form-grid">
+          <label class="field">
+            <span>Fecha</span>
+            <input class="field-input" type="date" [(ngModel)]="photoDate">
+          </label>
+          <label class="field">
+            <span>Ángulo</span>
+            <select class="field-input" [(ngModel)]="photoPose">
+              <option value="">—</option>
+              @for (p of poses; track p.value) {
+                <option [value]="p.value">{{ p.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="field field-wide">
+            <span>Foto</span>
+            <input class="field-input" type="file" accept="image/*" (change)="onPhotoSelected($event)">
+          </label>
+          <label class="field field-wide">
+            <span>Nota (opcional)</span>
+            <input class="field-input" type="text" [(ngModel)]="photoNote" placeholder="p. ej. semana 1">
+          </label>
+          <div class="form-actions">
+            <button class="btn-primary" type="button" (click)="savePhoto()" [disabled]="savingPhoto()">
+              {{ savingPhoto() ? 'Subiendo…' : 'Guardar foto' }}
+            </button>
+            <button class="btn-ghost" type="button" (click)="showPhotoForm.set(false)">Cancelar</button>
+          </div>
+        </div>
+      }
+
+      @if (photosByDate().length) {
+        @for (group of photosByDate(); track group.date) {
+          <div class="photo-group">
+            <p class="photo-date">{{ group.date | date:'d MMM y' }}</p>
+            <div class="photo-grid">
+              @for (p of group.items; track p.id) {
+                <button class="photo-thumb" type="button" (click)="viewer.set(p)"
+                        [attr.aria-label]="'Ver foto ' + (p.pose || '')">
+                  <img [src]="p.url" [alt]="poseLabel(p.pose) || 'Foto de progreso'" loading="lazy">
+                  @if (p.pose) { <span class="photo-pose">{{ poseLabel(p.pose) }}</span> }
+                </button>
+              }
+            </div>
+          </div>
+        }
+      } @else if (!showPhotoForm()) {
+        <p class="empty">Sin fotos todavía. Añade una para comparar tu evolución.</p>
+      }
+    </div>
+  }
+</div>
+
+<!-- ─────────────── Visor de foto ─────────────── -->
+@if (viewer(); as p) {
+  <div class="viewer" (click)="viewer.set(null)">
+    <div class="viewer-inner" (click)="$event.stopPropagation()">
+      <img [src]="p.url" [alt]="poseLabel(p.pose) || 'Foto de progreso'">
+      <div class="viewer-meta">
+        <span>{{ p.taken_on | date:'d MMM y' }}@if (p.pose) { · {{ poseLabel(p.pose) }} }</span>
+        @if (p.note) { <span class="viewer-note">{{ p.note }}</span> }
+      </div>
+      <div class="viewer-actions">
+        <button class="btn-ghost" type="button" (click)="requestPhotoDelete(p)">
+          <mat-icon>{{ pendingPhotoDelete() === p.id ? 'delete_forever' : 'delete' }}</mat-icon>
+          {{ pendingPhotoDelete() === p.id ? 'Confirmar' : 'Eliminar' }}
+        </button>
+        <button class="btn-primary" type="button" (click)="viewer.set(null)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

@@ -30,7 +30,8 @@ from ..models.activity import Activity
 from ..models.energy_expenditure import EnergyExpenditure
 from ..models.weekly_review import WeeklyReview
 from ..models.weight_entry import WeightEntry
-from . import activity_service, profile_service, targets_service, weekly_review_tool
+from . import (activity_service, body_service, profile_service, targets_service,
+               weekly_review_tool)
 from .claude_service import AnalysisError
 
 # Umbral de adherencia: se considera "en objetivo" un día cuyas calorías quedan
@@ -48,6 +49,10 @@ Reglas:
 - Usa SOLO las cifras que te doy. No inventes números ni completes lo que falte.
 - Cada elogio o crítica va anclado a una cifra concreta (kcal, gramos de
   proteína, sesiones, minutos, peso).
+- Si hay medidas corporales de cinta (`body`: cintura, abdomen, pectoral,
+  bíceps), comenta el progreso: cita el valor actual y el cambio respecto a la
+  toma anterior (p. ej. cintura −1 cm). Son periódicas, no semanales, así que no
+  pasa nada si no hubo toma esta semana. Si no hay medidas, no lo menciones.
 - Ten en cuenta el objetivo declarado (perder grasa, mantener, ganar, recomp) y
   las lesiones o condiciones médicas: no recomiendes nada que las ignore.
 - Sé honesto pero motivador: si la semana fue floja, dilo, pero con una salida.
@@ -287,6 +292,28 @@ def _weight_metrics(week: dict) -> dict:
     }
 
 
+def _body_metrics() -> dict:
+    """Medidas corporales de cinta (cintura, abdomen, pectoral, bíceps) con su
+    último valor y variación. Son periódicas (p. ej. mensuales), así que no se
+    limitan a la semana: se da la última toma y el cambio respecto a la anterior,
+    para poder comentar el progreso aunque no haya toma esta misma semana."""
+    resumen = body_service.measurement_summary()
+    if not resumen['entries']:
+        return {'entries': 0}
+    return {
+        'entries': len(resumen['entries']),
+        'ultima_toma': (resumen['latest'] or {}).get('measured_on'),
+        'medidas': {
+            info['label']: {
+                'cm': info['current'],
+                'cambio_desde_anterior': info['change_last'],
+                'cambio_total': info['change_total'],
+            }
+            for info in resumen['changes'].values()
+        },
+    }
+
+
 def _daily_targets() -> dict | None:
     profile = profile_service.get_or_create()
     return targets_service.compute(profile, profile_service.estimate_energy(profile))
@@ -309,6 +336,7 @@ def compute_metrics(week: dict) -> dict:
         'activity': activity,
         'energy': _energy_metrics(week),
         'weight': _weight_metrics(week),
+        'body': _body_metrics(),
         'targets': targets,
         'has_data': nutrition['days_logged'] > 0 or activity['sessions'] > 0,
     }
