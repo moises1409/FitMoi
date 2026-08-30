@@ -25,22 +25,6 @@
   line-height: 1.4;
 }
 
-.edit-link {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  background: transparent;
-  border: none;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--primary-dark);
-  cursor: pointer;
-  mat-icon { font-size: 15px; height: 15px; width: 15px; }
-}
-
-body.dark-theme .edit-link { color: var(--primary); }
-
 /* ── Energía ── */
 .energy-card {
   padding: 16px;

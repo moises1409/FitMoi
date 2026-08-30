@@ -19,10 +19,11 @@ class BodyMeasurement(db.Model):
     measured_on = db.Column(db.Date, nullable=False, unique=True, index=True)
 
     # Contornos en cm; todos opcionales (uno puede tomar solo algunos ese día).
-    waist_cm = db.Column(db.Float)     # cintura
-    abdomen_cm = db.Column(db.Float)   # abdomen
-    chest_cm = db.Column(db.Float)     # pectoral
-    biceps_cm = db.Column(db.Float)    # bíceps
+    waist_cm = db.Column(db.Float)         # cintura
+    abdomen_cm = db.Column(db.Float)       # abdomen
+    chest_cm = db.Column(db.Float)         # pectoral
+    biceps_left_cm = db.Column(db.Float)   # bíceps izquierdo
+    biceps_right_cm = db.Column(db.Float)  # bíceps derecho
 
     note = db.Column(db.Text)
     created_at = db.Column(
@@ -32,12 +33,13 @@ class BodyMeasurement(db.Model):
     )
 
     # Campos numéricos y su etiqueta legible (fuente única para vista, API y LLM).
-    FIELDS = ('waist_cm', 'abdomen_cm', 'chest_cm', 'biceps_cm')
+    FIELDS = ('waist_cm', 'abdomen_cm', 'chest_cm', 'biceps_left_cm', 'biceps_right_cm')
     LABELS = {
         'waist_cm': 'Cintura',
         'abdomen_cm': 'Abdomen',
         'chest_cm': 'Pectoral',
-        'biceps_cm': 'Bíceps',
+        'biceps_left_cm': 'Bíceps izq.',
+        'biceps_right_cm': 'Bíceps der.',
     }
 
     def has_any(self) -> bool:

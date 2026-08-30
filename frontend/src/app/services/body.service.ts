@@ -29,12 +29,11 @@ export class BodyService {
       .pipe(tap((s) => this.summary.set(s)));
   }
 
-  /** Sube una foto de progreso (multipart). */
-  addPhoto(photo: File, takenOn: string, pose?: string, note?: string): Observable<BodySummary> {
+  /** Sube una o varias fotos de progreso de una vez (multipart). */
+  addPhotos(photos: File[], takenOn: string, note?: string): Observable<BodySummary> {
     const form = new FormData();
-    form.append('photo', photo);
+    for (const photo of photos) form.append('photos', photo);
     form.append('taken_on', takenOn);
-    if (pose) form.append('pose', pose);
     if (note?.trim()) form.append('note', note.trim());
     return this.http
       .post<BodySummary>(`${this.base}/photos`, form)

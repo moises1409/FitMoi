@@ -5,7 +5,8 @@ export interface BodyMeasurement {
   waist_cm: number | null;
   abdomen_cm: number | null;
   chest_cm: number | null;
-  biceps_cm: number | null;
+  biceps_left_cm: number | null;
+  biceps_right_cm: number | null;
   note: string | null;
 }
 
@@ -42,19 +43,14 @@ export interface BodySummary {
 }
 
 /** Claves de los contornos numéricos (las que el formulario y las gráficas usan). */
-export type MeasurementKey = 'waist_cm' | 'abdomen_cm' | 'chest_cm' | 'biceps_cm';
+export type MeasurementKey =
+  | 'waist_cm' | 'abdomen_cm' | 'chest_cm' | 'biceps_left_cm' | 'biceps_right_cm';
 
 /** Campos numéricos de una toma, con su etiqueta, para formulario y vista. */
 export const MEASUREMENT_FIELDS: { key: MeasurementKey; label: string }[] = [
   { key: 'waist_cm', label: 'Cintura' },
   { key: 'abdomen_cm', label: 'Abdomen' },
   { key: 'chest_cm', label: 'Pectoral' },
-  { key: 'biceps_cm', label: 'Bíceps' },
-];
-
-export const POSES: { value: string; label: string }[] = [
-  { value: 'frente', label: 'Frente' },
-  { value: 'perfil', label: 'Perfil' },
-  { value: 'espalda', label: 'Espalda' },
-  { value: 'otra', label: 'Otra' },
+  { key: 'biceps_left_cm', label: 'Bíceps izq.' },
+  { key: 'biceps_right_cm', label: 'Bíceps der.' },
 ];

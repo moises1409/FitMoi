@@ -72,8 +72,13 @@ def delete_measurement(entry_id):
 
 @body_bp.route('/photos', methods=['POST'])
 def add_photo():
-    file = request.files.get('photo')
-    if file is None or not file.filename:
+    # Se pueden subir varias fotos de una vez (campo 'photos'); se acepta 'photo'
+    # en singular por compatibilidad.
+    files = [f for f in request.files.getlist('photos') if f and f.filename]
+    single = request.files.get('photo')
+    if not files and single and single.filename:
+        files = [single]
+    if not files:
         return jsonify({'error': 'Falta la foto.'}), 400
 
     when = None
@@ -83,11 +88,11 @@ def add_photo():
         except ValueError:
             return jsonify({'error': 'Fecha inválida, se espera YYYY-MM-DD'}), 400
 
-    pose = (request.form.get('pose') or '').strip().lower() or None
     note = (request.form.get('note') or '')[:MAX_NOTE] or None
 
     try:
-        body_service.add_photo(file.read(), when=when, pose=pose, note=note)
+        for f in files:
+            body_service.add_photo(f.read(), when=when, note=note)
     except UnsupportedImageError as exc:
         db.session.rollback()
         return jsonify({'error': str(exc)}), 400
