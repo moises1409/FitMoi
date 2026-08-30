@@ -76,6 +76,19 @@
           <mat-icon class="coach-arrow">chevron_right</mat-icon>
         </a>
 
+        <!-- ── Progreso corporal: medidas de cinta y fotos ── -->
+        <a class="coach-card card" routerLink="/progress">
+          <div class="coach-icon"><mat-icon>straighten</mat-icon></div>
+          <div class="coach-text">
+            <p class="card-title">Progreso corporal</p>
+            <p class="coach-sub">
+              Registra tus medidas (cintura, abdomen, pectoral, bíceps) y fotos, y
+              consulta su evolución en el tiempo.
+            </p>
+          </div>
+          <mat-icon class="coach-arrow">chevron_right</mat-icon>
+        </a>
+
         <!-- ── Peso ── -->
         @if (weight(); as w) {
           <div class="weight-card card">

@@ -30,8 +30,8 @@ from ..models.activity import Activity
 from ..models.coach_conversation import CoachConversation
 from ..models.energy_expenditure import EnergyExpenditure
 from ..models.food_log import FoodLog
-from . import (activity_service, coach_tool, profile_service, targets_service,
-               weekly_review_service, weight_service)
+from . import (activity_service, body_service, coach_tool, profile_service,
+               targets_service, weekly_review_service, weight_service)
 from .claude_service import AnalysisError
 
 # Cuántas semanas cerradas resumir en el contexto base. Más allá, que el agente
@@ -62,15 +62,17 @@ Cómo hablas:
 
 Cómo respondes:
 - Apóyate SIEMPRE en sus datos. Ancla lo que digas a cifras reales (kcal, gramos
-  de proteína, sesiones, minutos, peso, composición corporal, gasto) en vez de
-  generalidades.
-- Tienes en el contexto su perfil, sus objetivos del día, su peso y su composición
+  de proteína, sesiones, minutos, peso, composición corporal, medidas de cinta,
+  gasto) en vez de generalidades.
+- Tienes en el contexto su perfil, sus objetivos del día, su peso, su composición
   corporal (grasa, músculo, hueso y agua, cuando usa la báscula Withings, con la
-  evolución en las últimas pesadas) y un resumen de las últimas semanas con el
-  detalle de la semana en curso. Si necesitas el detalle de un día concreto o de
-  un rango que no está ahí, usa las herramientas para consultarlo antes de
-  responder. No te inventes números que no tengas. Si te preguntan por la
-  composición y no hay datos aún, dile que se pese con la báscula conectada.
+  evolución en las últimas pesadas), sus medidas de cinta (cintura, abdomen,
+  pectoral, bíceps) y un resumen de las últimas semanas con el detalle de la
+  semana en curso. Si necesitas el detalle de un día concreto o de un rango que
+  no está ahí, usa las herramientas para consultarlo antes de responder. No te
+  inventes números que no tengas. Si te preguntan por la composición y no hay
+  datos aún, dile que se pese con la báscula conectada; si por una medida que aún
+  no ha registrado, que la anote en su perfil para poder seguirla.
 - Ten en cuenta su objetivo (perder grasa, mantener, ganar, recomposición) y sus
   lesiones o condiciones médicas: nunca recomiendes nada que las ignore.
 - Si te falta un dato para responder bien, pídeselo o dile cómo registrarlo.
@@ -260,6 +262,7 @@ def _recent_weeks(today: date) -> list[dict]:
 
 def _base_context(profile, targets) -> str:
     today = local_today()
+    medidas = body_service.coach_context()
     partes = [
         f'FECHA DE HOY: {today.isoformat()} (semana empieza en lunes).',
         '',
@@ -272,6 +275,10 @@ def _base_context(profile, targets) -> str:
         '',
         'SEGUIMIENTO DE PESO:',
         json.dumps(_weight_context(profile), ensure_ascii=False),
+        '',
+        'MEDIDAS CORPORALES (cinta: cintura, abdomen, pectoral, bíceps; en cm):',
+        json.dumps(medidas, ensure_ascii=False) if medidas
+        else '(sin medidas registradas todavía)',
         '',
         'RESUMEN POR SEMANAS (la primera es la semana en curso, con su detalle '
         'diario; el resto son semanas cerradas recientes):',
