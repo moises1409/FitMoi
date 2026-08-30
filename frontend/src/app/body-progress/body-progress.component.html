@@ -115,31 +115,26 @@
       </div>
 
       @if (showPhotoForm()) {
-        <div class="form-grid">
+        <div class="photo-form">
           <label class="field">
             <span>Fecha</span>
             <input class="field-input" type="date" [(ngModel)]="photoDate">
           </label>
           <label class="field">
-            <span>Ángulo</span>
-            <select class="field-input" [(ngModel)]="photoPose">
-              <option value="">—</option>
-              @for (p of poses; track p.value) {
-                <option [value]="p.value">{{ p.label }}</option>
-              }
-            </select>
+            <span>Fotos (puedes elegir varias)</span>
+            <input class="field-input" type="file" accept="image/*" multiple
+                   (change)="onPhotosSelected($event)">
           </label>
-          <label class="field field-wide">
-            <span>Foto</span>
-            <input class="field-input" type="file" accept="image/*" (change)="onPhotoSelected($event)">
-          </label>
-          <label class="field field-wide">
+          @if (photoFiles().length) {
+            <p class="photo-count">{{ photoFiles().length }} foto(s) seleccionada(s)</p>
+          }
+          <label class="field">
             <span>Nota (opcional)</span>
             <input class="field-input" type="text" [(ngModel)]="photoNote" placeholder="p. ej. semana 1">
           </label>
           <div class="form-actions">
-            <button class="btn-primary" type="button" (click)="savePhoto()" [disabled]="savingPhoto()">
-              {{ savingPhoto() ? 'Subiendo…' : 'Guardar foto' }}
+            <button class="btn-primary" type="button" (click)="savePhotos()" [disabled]="savingPhoto()">
+              {{ savingPhoto() ? 'Subiendo…' : 'Guardar fotos' }}
             </button>
             <button class="btn-ghost" type="button" (click)="showPhotoForm.set(false)">Cancelar</button>
           </div>
@@ -153,9 +148,8 @@
             <div class="photo-grid">
               @for (p of group.items; track p.id) {
                 <button class="photo-thumb" type="button" (click)="viewer.set(p)"
-                        [attr.aria-label]="'Ver foto ' + (p.pose || '')">
-                  <img [src]="p.url" [alt]="poseLabel(p.pose) || 'Foto de progreso'" loading="lazy">
-                  @if (p.pose) { <span class="photo-pose">{{ poseLabel(p.pose) }}</span> }
+                        aria-label="Ver foto de progreso">
+                  <img [src]="p.url" alt="Foto de progreso" loading="lazy">
                 </button>
               }
             </div>
@@ -173,9 +167,9 @@
 @if (viewer(); as p) {
   <div class="viewer" (click)="viewer.set(null)">
     <div class="viewer-inner" (click)="$event.stopPropagation()">
-      <img [src]="p.url" [alt]="poseLabel(p.pose) || 'Foto de progreso'">
+      <img [src]="p.url" alt="Foto de progreso">
       <div class="viewer-meta">
-        <span>{{ p.taken_on | date:'d MMM y' }}@if (p.pose) { · {{ poseLabel(p.pose) }} }</span>
+        <span>{{ p.taken_on | date:'d MMM y' }}</span>
         @if (p.note) { <span class="viewer-note">{{ p.note }}</span> }
       </div>
       <div class="viewer-actions">

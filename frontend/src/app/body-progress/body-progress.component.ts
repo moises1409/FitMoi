@@ -11,7 +11,6 @@ import {
   BodyPhoto,
   MeasurementKey,
   MEASUREMENT_FIELDS,
-  POSES,
 } from '../models/body.model';
 import { toISODate } from '../shared/date.utils';
 
@@ -32,24 +31,23 @@ export class BodyProgressComponent implements OnInit {
   loading = signal(true);
 
   readonly fields = MEASUREMENT_FIELDS;
-  readonly poses = POSES;
 
   // ── Formulario de medidas ──
   showMeasureForm = signal(false);
   savingMeasure = signal(false);
   measureDate = toISODate(new Date());
   measure: Record<MeasKey, number | null> = {
-    waist_cm: null, abdomen_cm: null, chest_cm: null, biceps_cm: null,
+    waist_cm: null, abdomen_cm: null, chest_cm: null,
+    biceps_left_cm: null, biceps_right_cm: null,
   };
   measureNote = '';
 
-  // ── Formulario de foto ──
+  // ── Formulario de foto (se pueden subir varias de una vez) ──
   showPhotoForm = signal(false);
   savingPhoto = signal(false);
   photoDate = toISODate(new Date());
-  photoPose = '';
   photoNote = '';
-  photoFile: File | null = null;
+  photoFiles = signal<File[]>([]);
 
   // ── Visor de foto a pantalla ──
   viewer = signal<BodyPhoto | null>(null);
@@ -150,7 +148,10 @@ export class BodyProgressComponent implements OnInit {
       next: () => {
         this.savingMeasure.set(false);
         this.showMeasureForm.set(false);
-        this.measure = { waist_cm: null, abdomen_cm: null, chest_cm: null, biceps_cm: null };
+        this.measure = {
+          waist_cm: null, abdomen_cm: null, chest_cm: null,
+          biceps_left_cm: null, biceps_right_cm: null,
+        };
         this.measureNote = '';
         this.snack.open('Medidas registradas', 'OK', { duration: 2500 });
       },
@@ -179,33 +180,33 @@ export class BodyProgressComponent implements OnInit {
   }
 
   // ── Fotos ──
-  onPhotoSelected(event: Event): void {
+  onPhotosSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.photoFile = input.files?.[0] ?? null;
+    this.photoFiles.set(input.files ? Array.from(input.files) : []);
   }
 
-  savePhoto(): void {
+  savePhotos(): void {
     if (this.savingPhoto()) return;
-    if (!this.photoFile) {
-      this.snack.open('Elige una foto', 'OK');
+    const files = this.photoFiles();
+    if (!files.length) {
+      this.snack.open('Elige al menos una foto', 'OK');
       return;
     }
     this.savingPhoto.set(true);
-    this.body.addPhoto(this.photoFile, this.photoDate, this.photoPose || undefined, this.photoNote)
-      .subscribe({
-        next: () => {
-          this.savingPhoto.set(false);
-          this.showPhotoForm.set(false);
-          this.photoFile = null;
-          this.photoPose = '';
-          this.photoNote = '';
-          this.snack.open('Foto guardada', 'OK', { duration: 2500 });
-        },
-        error: (err) => {
-          this.savingPhoto.set(false);
-          this.snack.open(err?.error?.error ?? 'No se pudo subir la foto', 'OK', { duration: 5000 });
-        },
-      });
+    this.body.addPhotos(files, this.photoDate, this.photoNote).subscribe({
+      next: () => {
+        this.savingPhoto.set(false);
+        this.showPhotoForm.set(false);
+        this.photoFiles.set([]);
+        this.photoNote = '';
+        this.snack.open(files.length > 1 ? `${files.length} fotos guardadas` : 'Foto guardada',
+          'OK', { duration: 2500 });
+      },
+      error: (err) => {
+        this.savingPhoto.set(false);
+        this.snack.open(err?.error?.error ?? 'No se pudo subir la foto', 'OK', { duration: 5000 });
+      },
+    });
   }
 
   requestPhotoDelete(photo: BodyPhoto): void {
@@ -224,9 +225,5 @@ export class BodyProgressComponent implements OnInit {
     setTimeout(() => {
       if (this.pendingPhotoDelete() === photo.id) this.pendingPhotoDelete.set(null);
     }, 4000);
-  }
-
-  poseLabel(value: string | null): string {
-    return this.poses.find((p) => p.value === value)?.label ?? '';
   }
 }

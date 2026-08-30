@@ -41,6 +41,22 @@
   .btn-primary, .btn-ghost { width: auto; flex: 1; }
 }
 
+// El formulario de fotos va en una sola columna (fecha, selector de ficheros,
+// nota), más legible que la rejilla de 2 columnas de las medidas.
+.photo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  .form-actions { display: flex; gap: 8px; .btn-primary, .btn-ghost { width: auto; flex: 1; } }
+}
+.photo-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin: -4px 0 0;
+}
+
 // ── Tendencias por contorno ──
 .trends { margin-top: 16px; }
 .trend { margin-bottom: 14px; }
