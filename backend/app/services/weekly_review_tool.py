@@ -8,6 +8,8 @@ frágil. El modelo redacta SOLO sobre las cifras que se le pasan; no inventa
 números.
 """
 
+import copy
+
 TOOL_NAME = 'redactar_resumen_semanal'
 
 _LIST_OF_TEXT = {'type': 'array', 'items': {'type': 'string'}}
@@ -73,3 +75,26 @@ TOOL = {
         'required': ['resumen', 'lo_bueno', 'a_mejorar', 'comparativa', 'recomendaciones'],
     },
 }
+
+
+def tool_for(force_comparison: bool) -> dict:
+    """La herramienta, ajustada según haya semana anterior o no.
+
+    Cuando SÍ hay con qué comparar, se quita `sin_datos` del enum de `tendencia`:
+    así el modelo está obligado a mojarse (mejor/igual/peor) en vez de escaquearse
+    de la comparativa —el fallo que dejaba el resumen sin evolución semana a
+    semana—. Sin semana anterior, se deja el enum completo.
+    """
+    if not force_comparison:
+        return TOOL
+    tool = copy.deepcopy(TOOL)
+    comparativa = tool['input_schema']['properties']['comparativa']
+    comparativa['properties']['tendencia']['enum'] = ['mejor', 'igual', 'peor']
+    comparativa['properties']['tendencia']['description'] = (
+        'Valoración global respecto al objetivo frente a la semana anterior '
+        '(pesa nutrición y actividad juntas). HAY datos de la semana anterior, '
+        'así que NO uses "sin_datos": elige mejor, igual o peor.'
+    )
+    # detalle pasa a ser obligatorio: la comparativa no puede quedar vacía.
+    comparativa['required'] = ['tendencia', 'detalle']
+    return tool
