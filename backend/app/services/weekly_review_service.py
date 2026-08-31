@@ -399,6 +399,32 @@ def _profile_context(profile) -> dict:
     }
 
 
+def _delta(actual, anterior) -> dict:
+    a = round(float(actual or 0), 1)
+    b = round(float(anterior or 0), 1)
+    return {'esta_semana': a, 'semana_anterior': b, 'delta': round(a - b, 1)}
+
+
+def _comparison_deltas(metrics: dict, previous: dict) -> dict:
+    """Deltas clave (esta semana vs anterior) ya calculados, para que el modelo
+    no tenga excusa para no comparar. Los números salen de las cifras congeladas,
+    no del modelo."""
+    n, pn = metrics['nutrition'], previous['nutrition']
+    a, pa = metrics['activity'], previous['activity']
+    deltas = {
+        'kcal_dia': _delta(n.get('avg_calories'), pn.get('avg_calories')),
+        'proteina_g_dia': _delta(n.get('avg_proteins'), pn.get('avg_proteins')),
+        'dias_registrados': _delta(n.get('days_logged'), pn.get('days_logged')),
+        'sesiones': _delta(a.get('sessions'), pa.get('sessions')),
+        'minutos_actividad': _delta(a.get('minutes'), pa.get('minutes')),
+        'dias_activos': _delta(a.get('days_active'), pa.get('days_active')),
+    }
+    w, pw = metrics.get('weight') or {}, previous.get('weight') or {}
+    if w.get('end') is not None and pw.get('end') is not None:
+        deltas['peso_kg'] = _delta(w.get('end'), pw.get('end'))
+    return deltas
+
+
 def _user_content(metrics: dict, previous: dict | None, profile) -> str:
     partes = [
         'Redacta el resumen de esta semana para el usuario.',
@@ -414,6 +440,15 @@ def _user_content(metrics: dict, previous: dict | None, profile) -> str:
         partes += [
             'CIFRAS DE LA SEMANA ANTERIOR (para la comparativa):',
             json.dumps(previous, ensure_ascii=False, indent=2),
+            '',
+            'DELTAS ESTA SEMANA vs ANTERIOR (ya calculados, úsalos en la comparativa):',
+            json.dumps(_comparison_deltas(metrics, previous), ensure_ascii=False, indent=2),
+            '',
+            'SÍ hay semana anterior con datos: la comparativa es OBLIGATORIA. '
+            'tendencia debe ser "mejor", "igual" o "peor" (NUNCA "sin_datos"), y '
+            '`detalle` tiene que citar los deltas concretos de arriba (kcal/día, '
+            'proteína, sesiones, minutos, peso) y valorar si progresa hacia su '
+            'objetivo o no.',
         ]
     else:
         partes.append('No hay datos de la semana anterior: tendencia = "sin_datos".')
@@ -483,15 +518,24 @@ _REINFORCE = (
 _MAX_TOKENS = 4096
 
 
-def _is_underfilled(narrative: dict) -> bool:
+def _is_underfilled(narrative: dict, comparing: bool = False) -> bool:
     """El modelo a veces rellena solo `resumen` y deja el resto vacío. Si hay
     `resumen` pero ni un punto en lo_bueno/a_mejorar/recomendaciones, está a
-    medias (para una semana con datos siempre hay algo que decir)."""
-    return bool(narrative.get('resumen')) and not (
+    medias (para una semana con datos siempre hay algo que decir). Si además hay
+    semana anterior, la comparativa no puede quedar vacía (tendencia sin_datos o
+    detalle en blanco)."""
+    if not narrative.get('resumen'):
+        return False
+    listas_vacias = not (
         narrative.get('lo_bueno')
         or narrative.get('a_mejorar')
         or narrative.get('recomendaciones')
     )
+    comp = narrative.get('comparativa') or {}
+    comparativa_vacia = comparing and (
+        comp.get('tendencia') == 'sin_datos' or not comp.get('detalle')
+    )
+    return listas_vacias or comparativa_vacia
 
 
 def _log_response(response, intento: str) -> None:
@@ -515,12 +559,13 @@ def _extract_narrative(response) -> dict:
     return _normalize_narrative(data)
 
 
-def _request_narrative(client, model: str, user_content: str, reinforce: bool):
+def _request_narrative(client, model: str, user_content: str, reinforce: bool,
+                       tool: dict):
     return client.messages.create(
         model=model,
         max_tokens=_MAX_TOKENS,
         system=SYSTEM + (_REINFORCE if reinforce else ''),
-        tools=[weekly_review_tool.TOOL],
+        tools=[tool],
         tool_choice={'type': 'tool', 'name': weekly_review_tool.TOOL_NAME},
         messages=[{'role': 'user', 'content': user_content}],
     )
@@ -540,18 +585,24 @@ def _call_llm(metrics: dict, previous: dict | None) -> tuple[dict, str]:
     model = current_app.config['ANTHROPIC_COACH_MODEL']
     user_content = _user_content(metrics, previous, profile)
 
-    response = _request_narrative(client, model, user_content, reinforce=False)
+    # Con semana anterior se fuerza la comparativa: la herramienta quita
+    # `sin_datos` del enum de tendencia y el prompt lleva los deltas ya calculados.
+    comparing = previous is not None
+    tool = weekly_review_tool.tool_for(comparing)
+    current_app.logger.info('Resumen semanal: semana anterior con datos = %s', comparing)
+
+    response = _request_narrative(client, model, user_content, reinforce=False, tool=tool)
     _log_response(response, 'intento 1')
     if response.stop_reason == 'refusal':
         raise AnalysisError('El modelo rechazó redactar el resumen.')
     narrative = _extract_narrative(response)
 
-    if response.stop_reason == 'max_tokens' or _is_underfilled(narrative):
+    if response.stop_reason == 'max_tokens' or _is_underfilled(narrative, comparing):
         current_app.logger.warning(
             'Resumen semanal a medias (stop=%s); reintentando con refuerzo.',
             response.stop_reason,
         )
-        response = _request_narrative(client, model, user_content, reinforce=True)
+        response = _request_narrative(client, model, user_content, reinforce=True, tool=tool)
         _log_response(response, 'reintento')
         if response.stop_reason == 'refusal':
             raise AnalysisError('El modelo rechazó redactar el resumen.')
@@ -559,7 +610,7 @@ def _call_llm(metrics: dict, previous: dict | None) -> tuple[dict, str]:
 
     if response.stop_reason == 'max_tokens':
         raise AnalysisError('El resumen se truncó (max_tokens). Reinténtalo.')
-    if _is_underfilled(narrative):
+    if _is_underfilled(narrative, comparing):
         current_app.logger.error('Resumen semanal sigue incompleto tras el reintento.')
         raise AnalysisError('El modelo devolvió un resumen incompleto. Reinténtalo.')
 
