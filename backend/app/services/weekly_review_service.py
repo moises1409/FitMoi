@@ -468,36 +468,42 @@ def _api_key() -> str:
     return key
 
 
-def _call_llm(metrics: dict, previous: dict | None) -> tuple[dict, str]:
-    """Pide al LLM que redacte el resumen. Devuelve (narrativa, modelo)."""
-    profile = profile_service.get_or_create()
-    client = anthropic.Anthropic(api_key=_api_key())
-    model = current_app.config['ANTHROPIC_COACH_MODEL']
+# Insistencia extra cuando el modelo rellena solo `resumen` y deja las listas
+# vacías (síntoma de "resumen incompleto"). Se añade al system en el reintento.
+_REINFORCE = (
+    '\n\nIMPORTANTE: usa la herramienta rellenando TODAS sus secciones con '
+    'contenido real, no solo `resumen`. `lo_bueno` y `a_mejorar` con 2-4 puntos '
+    'cada una anclados a cifras concretas; `comparativa.detalle` citando los '
+    'deltas frente a la semana anterior (si te la doy); y `recomendaciones` con '
+    '2-3 acciones. No devuelvas listas vacías si hay datos que comentar.'
+)
 
-    response = client.messages.create(
-        model=model,
-        # El resumen tiene 5 secciones (resumen, lo_bueno, a_mejorar, comparativa,
-        # recomendaciones) redactadas en español. Con 1500 la salida del tool use
-        # se truncaba: el JSON quedaba cortado tras `resumen` y el resto de campos
-        # se perdía, así que `_normalize_narrative` los rellenaba vacíos y la
-        # comparativa caía a "sin_datos". El resumen queda muy por debajo de 3000.
-        max_tokens=3000,
-        system=SYSTEM,
-        tools=[weekly_review_tool.TOOL],
-        tool_choice={'type': 'tool', 'name': weekly_review_tool.TOOL_NAME},
-        messages=[{'role': 'user', 'content': _user_content(metrics, previous, profile)}],
+# Presupuesto holgado: la salida completa (5 secciones acotadas) ronda los ~1500
+# tokens; 4096 descarta del todo la truncación como causa de un resumen a medias.
+_MAX_TOKENS = 4096
+
+
+def _is_underfilled(narrative: dict) -> bool:
+    """El modelo a veces rellena solo `resumen` y deja el resto vacío. Si hay
+    `resumen` pero ni un punto en lo_bueno/a_mejorar/recomendaciones, está a
+    medias (para una semana con datos siempre hay algo que decir)."""
+    return bool(narrative.get('resumen')) and not (
+        narrative.get('lo_bueno')
+        or narrative.get('a_mejorar')
+        or narrative.get('recomendaciones')
     )
 
-    if response.stop_reason == 'refusal':
-        raise AnalysisError('El modelo rechazó redactar el resumen.')
 
-    # Un tool use truncado devuelve un JSON incompleto: los campos que faltan se
-    # normalizan a vacío y guardaríamos un resumen a medias en silencio (solo el
-    # `resumen`, sin comparativa ni recomendaciones). Mejor fallar y reintentar
-    # que persistir una fila rota.
-    if response.stop_reason == 'max_tokens':
-        raise AnalysisError('El resumen se truncó (max_tokens). Reinténtalo.')
+def _log_response(response, intento: str) -> None:
+    usage = getattr(response, 'usage', None)
+    current_app.logger.info(
+        'Resumen semanal (%s): stop=%s, out_tokens=%s',
+        intento, response.stop_reason, getattr(usage, 'output_tokens', '?'),
+    )
 
+
+def _extract_narrative(response) -> dict:
+    """Saca la narrativa del bloque tool_use y la normaliza. Lanza si no lo usó."""
     block = next(
         (b for b in response.content
          if b.type == 'tool_use' and b.name == weekly_review_tool.TOOL_NAME),
@@ -505,9 +511,59 @@ def _call_llm(metrics: dict, previous: dict | None) -> tuple[dict, str]:
     )
     if block is None:
         raise AnalysisError('El modelo no usó la herramienta de resumen.')
-
     data = block.input if isinstance(block.input, dict) else {}
-    return _normalize_narrative(data), model
+    return _normalize_narrative(data)
+
+
+def _request_narrative(client, model: str, user_content: str, reinforce: bool):
+    return client.messages.create(
+        model=model,
+        max_tokens=_MAX_TOKENS,
+        system=SYSTEM + (_REINFORCE if reinforce else ''),
+        tools=[weekly_review_tool.TOOL],
+        tool_choice={'type': 'tool', 'name': weekly_review_tool.TOOL_NAME},
+        messages=[{'role': 'user', 'content': user_content}],
+    )
+
+
+def _call_llm(metrics: dict, previous: dict | None) -> tuple[dict, str]:
+    """Pide al LLM que redacte el resumen. Devuelve (narrativa, modelo).
+
+    Ojo: con `tool_choice` forzado el modelo a veces cumple el esquema pero deja
+    las listas vacías (rellena solo `resumen`) —el "resumen incompleto"—. No es
+    truncación por `max_tokens` (la salida cabe de sobra en `_MAX_TOKENS`): es
+    infra-relleno del modelo. Por eso se detecta y se reintenta insistiendo, y si
+    aun así vuelve a medias se lanza en vez de persistir una fila rota.
+    """
+    profile = profile_service.get_or_create()
+    client = anthropic.Anthropic(api_key=_api_key())
+    model = current_app.config['ANTHROPIC_COACH_MODEL']
+    user_content = _user_content(metrics, previous, profile)
+
+    response = _request_narrative(client, model, user_content, reinforce=False)
+    _log_response(response, 'intento 1')
+    if response.stop_reason == 'refusal':
+        raise AnalysisError('El modelo rechazó redactar el resumen.')
+    narrative = _extract_narrative(response)
+
+    if response.stop_reason == 'max_tokens' or _is_underfilled(narrative):
+        current_app.logger.warning(
+            'Resumen semanal a medias (stop=%s); reintentando con refuerzo.',
+            response.stop_reason,
+        )
+        response = _request_narrative(client, model, user_content, reinforce=True)
+        _log_response(response, 'reintento')
+        if response.stop_reason == 'refusal':
+            raise AnalysisError('El modelo rechazó redactar el resumen.')
+        narrative = _extract_narrative(response)
+
+    if response.stop_reason == 'max_tokens':
+        raise AnalysisError('El resumen se truncó (max_tokens). Reinténtalo.')
+    if _is_underfilled(narrative):
+        current_app.logger.error('Resumen semanal sigue incompleto tras el reintento.')
+        raise AnalysisError('El modelo devolvió un resumen incompleto. Reinténtalo.')
+
+    return narrative, model
 
 
 # ─────────────────────────── persistencia / orquestación ───────────────────────────
