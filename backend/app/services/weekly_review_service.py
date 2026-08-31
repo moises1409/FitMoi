@@ -476,7 +476,12 @@ def _call_llm(metrics: dict, previous: dict | None) -> tuple[dict, str]:
 
     response = client.messages.create(
         model=model,
-        max_tokens=1500,
+        # El resumen tiene 5 secciones (resumen, lo_bueno, a_mejorar, comparativa,
+        # recomendaciones) redactadas en español. Con 1500 la salida del tool use
+        # se truncaba: el JSON quedaba cortado tras `resumen` y el resto de campos
+        # se perdía, así que `_normalize_narrative` los rellenaba vacíos y la
+        # comparativa caía a "sin_datos". El resumen queda muy por debajo de 3000.
+        max_tokens=3000,
         system=SYSTEM,
         tools=[weekly_review_tool.TOOL],
         tool_choice={'type': 'tool', 'name': weekly_review_tool.TOOL_NAME},
@@ -485,6 +490,13 @@ def _call_llm(metrics: dict, previous: dict | None) -> tuple[dict, str]:
 
     if response.stop_reason == 'refusal':
         raise AnalysisError('El modelo rechazó redactar el resumen.')
+
+    # Un tool use truncado devuelve un JSON incompleto: los campos que faltan se
+    # normalizan a vacío y guardaríamos un resumen a medias en silencio (solo el
+    # `resumen`, sin comparativa ni recomendaciones). Mejor fallar y reintentar
+    # que persistir una fila rota.
+    if response.stop_reason == 'max_tokens':
+        raise AnalysisError('El resumen se truncó (max_tokens). Reinténtalo.')
 
     block = next(
         (b for b in response.content
