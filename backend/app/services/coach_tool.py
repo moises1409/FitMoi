@@ -60,4 +60,33 @@ CONSULTAR_ACTIVIDADES = {
     },
 }
 
-TOOLS = [CONSULTAR_DIA, CONSULTAR_NUTRICION, CONSULTAR_ACTIVIDADES]
+VER_FOTOS_CORPORALES = {
+    'name': 'ver_fotos_corporales',
+    'description': (
+        'Devuelve las IMÁGENES de las fotos de progreso corporal que el usuario '
+        'ha subido en su perfil, para que las mires y compares. En el contexto '
+        'tienes el índice de fechas con fotos; pide las fechas que te interesen '
+        '(máximo 8 fotos por consulta, repartidas entre las fechas). Sin fechas, '
+        'devuelve la primera y la última fecha con fotos (la comparación de '
+        'evolución). Úsala SIEMPRE que pregunten por sus fotos, su físico o su '
+        'cambio visual: sí tienes acceso a ellas mediante esta herramienta.'
+    ),
+    'input_schema': {
+        'type': 'object',
+        'properties': {
+            'fechas': {
+                'type': 'array',
+                'items': _DATE,
+                'description': 'Fechas de las fotos a ver (de las del índice).',
+            },
+            'pose': {
+                'type': 'string',
+                'enum': ['frente', 'perfil', 'espalda', 'otra'],
+                'description': 'Opcional: solo fotos de esta pose.',
+            },
+        },
+    },
+}
+
+TOOLS = [CONSULTAR_DIA, CONSULTAR_NUTRICION, CONSULTAR_ACTIVIDADES,
+         VER_FOTOS_CORPORALES]

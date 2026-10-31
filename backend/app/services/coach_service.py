@@ -18,6 +18,7 @@ Esto lo hace un agente de verdad (razona sobre datos que él mismo pide) sin
 inflar cada petición con toda la base de datos.
 """
 
+import base64
 import json
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -68,7 +69,13 @@ Cómo respondes:
   corporal (grasa, músculo, hueso y agua, cuando usa la báscula Withings, con la
   evolución en las últimas pesadas), sus medidas de cinta (cintura, abdomen,
   pectoral, bíceps) y un resumen de las últimas semanas con el detalle de la
-  semana en curso. Si necesitas el detalle de un día concreto o de un rango que
+  semana en curso. También tienes el índice de sus FOTOS DE PROGRESO corporal
+  (fechas y poses): cuando pregunten por sus fotos, su físico o su cambio
+  visual, míralas con la herramienta `ver_fotos_corporales` y compáralas. Sí
+  tienes acceso a ellas; nunca digas lo contrario si el índice no está vacío.
+  Describe lo que se ve con prudencia (la luz, la postura y el ángulo cambian
+  mucho una foto) y crúzalo con el peso, la composición y las medidas.
+  Si necesitas el detalle de un día concreto o de un rango que
   no está ahí, usa las herramientas para consultarlo antes de responder. No te
   inventes números que no tengas. Si te preguntan por la composición y no hay
   datos aún, dile que se pese con la báscula conectada; si por una medida que aún
@@ -263,6 +270,7 @@ def _recent_weeks(today: date) -> list[dict]:
 def _base_context(profile, targets) -> str:
     today = local_today()
     medidas = body_service.coach_context()
+    fotos = body_service.photo_index()
     partes = [
         f'FECHA DE HOY: {today.isoformat()} (semana empieza en lunes).',
         '',
@@ -279,6 +287,11 @@ def _base_context(profile, targets) -> str:
         'MEDIDAS CORPORALES (cinta: cintura, abdomen, pectoral, bíceps; en cm):',
         json.dumps(medidas, ensure_ascii=False) if medidas
         else '(sin medidas registradas todavía)',
+        '',
+        'FOTOS DE PROGRESO CORPORAL (índice por fecha; para VERLAS usa la '
+        'herramienta ver_fotos_corporales):',
+        json.dumps(fotos, ensure_ascii=False) if fotos
+        else '(sin fotos de progreso registradas todavía)',
         '',
         'RESUMEN POR SEMANAS (la primera es la semana en curso, con su detalle '
         'diario; el resto son semanas cerradas recientes):',
@@ -432,14 +445,46 @@ def _tool_consultar_actividades(args: dict) -> dict:
     }
 
 
+def _tool_ver_fotos_corporales(args: dict) -> list[dict]:
+    """A diferencia del resto, devuelve bloques de contenido (texto + imágenes)
+    en vez de un dict: un tool_result admite imágenes y así el modelo las ve."""
+    fechas = args.get('fechas') or []
+    if not isinstance(fechas, list):
+        fechas = [fechas]
+    dates = sorted({_parse_date(f) for f in fechas[:20]})
+    fotos = body_service.photos_for_coach(dates, args.get('pose'))
+    if not fotos:
+        return [{'type': 'text', 'text': json.dumps(
+            {'error': 'No hay fotos de progreso para esas fechas.',
+             'fechas_disponibles': [d['fecha'] for d in (body_service.photo_index() or [])]},
+            ensure_ascii=False)}]
+
+    bloques: list[dict] = []
+    for photo, jpeg in fotos:
+        etiqueta = {'fecha': photo.taken_on.isoformat(), 'pose': photo.pose,
+                    'nota': photo.note}
+        bloques.append({'type': 'text', 'text': json.dumps(
+            {k: v for k, v in etiqueta.items() if v}, ensure_ascii=False)})
+        bloques.append({
+            'type': 'image',
+            'source': {
+                'type': 'base64',
+                'media_type': 'image/jpeg',
+                'data': base64.standard_b64encode(jpeg).decode('ascii'),
+            },
+        })
+    return bloques
+
+
 _TOOL_HANDLERS = {
     'consultar_dia': _tool_consultar_dia,
     'consultar_nutricion': _tool_consultar_nutricion,
     'consultar_actividades': _tool_consultar_actividades,
+    'ver_fotos_corporales': _tool_ver_fotos_corporales,
 }
 
 
-def _run_tool(name: str, tool_input) -> dict:
+def _run_tool(name: str, tool_input) -> dict | list:
     handler = _TOOL_HANDLERS.get(name)
     if handler is None:
         return {'error': f'Herramienta desconocida: {name}'}
@@ -500,10 +545,13 @@ def chat(conv: CoachConversation, message: str) -> dict:
             for block in response.content:
                 if block.type == 'tool_use':
                     result = _run_tool(block.name, block.input)
+                    # Una lista ya son bloques de contenido (p. ej. imágenes).
+                    content = (result if isinstance(result, list)
+                               else json.dumps(result, ensure_ascii=False))
                     tool_results.append({
                         'type': 'tool_result',
                         'tool_use_id': block.id,
-                        'content': json.dumps(result, ensure_ascii=False),
+                        'content': content,
                     })
             api_messages.append({'role': 'assistant', 'content': response.content})
             api_messages.append({'role': 'user', 'content': tool_results})

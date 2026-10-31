@@ -224,6 +224,95 @@ def coach_context() -> dict | None:
     return {'medidas_actuales': actuales, 'ultimas_tomas': tomas}
 
 
+# Fotos que el entrenador puede mirar en una sola consulta, y tamaño al que se
+# reducen para ello: con 1024 px se aprecia de sobra la silueta y cada imagen
+# cuesta ~1/2 de tokens que a 1568 (el tamaño de guardado).
+COACH_MAX_PHOTOS = 8
+COACH_PHOTO_DIMENSION = 1024
+
+
+def photo_index() -> list[dict] | None:
+    """Índice compacto de las fotos de progreso por fecha (sin las imágenes)
+    para el contexto base del entrenador: así sabe que existen y qué días hay,
+    y las pide con su herramienta cuando la pregunta lo requiere. None si no hay
+    ninguna."""
+    fotos = list(reversed(photo_history()))  # antigua → reciente
+    if not fotos:
+        return None
+    por_dia: dict = {}
+    for p in fotos:
+        dia = por_dia.setdefault(p.taken_on.isoformat(),
+                                 {'fecha': p.taken_on.isoformat(), 'fotos': 0,
+                                  'poses': [], 'notas': []})
+        dia['fotos'] += 1
+        if p.pose and p.pose not in dia['poses']:
+            dia['poses'].append(p.pose)
+        if p.note and p.note not in dia['notas']:
+            dia['notas'].append(p.note)
+    salida = []
+    for dia in por_dia.values():
+        salida.append({k: v for k, v in dia.items() if v})
+    return salida
+
+
+def photos_for_coach(dates: list[date] | None = None,
+                     pose: str | None = None) -> list[tuple[BodyPhoto, bytes]]:
+    """Fotos (registro + JPEG reducido) para que el entrenador las vea.
+
+    Sin fechas, devuelve la primera y la última fecha con fotos (la comparación
+    de evolución que casi siempre interesa). Como mucho COACH_MAX_PHOTOS; si un
+    fichero ya no está en disco se omite sin romper.
+    """
+    query = BodyPhoto.query
+    if pose in VALID_POSES:
+        query = query.filter(BodyPhoto.pose == pose)
+
+    if not dates:
+        fechas = [r[0] for r in query.with_entities(BodyPhoto.taken_on)
+                  .distinct().order_by(BodyPhoto.taken_on.asc()).all()]
+        dates = sorted({fechas[0], fechas[-1]}) if fechas else []
+    if not dates:
+        return []
+
+    fotos = (
+        query.filter(BodyPhoto.taken_on.in_(dates))
+        .order_by(BodyPhoto.taken_on.asc(), BodyPhoto.id.asc())
+        .all()
+    )
+
+    # Reparto equitativo entre fechas para que una con muchas fotos no deje a
+    # las demás fuera del tope.
+    por_fecha: dict = {}
+    for p in fotos:
+        por_fecha.setdefault(p.taken_on, []).append(p)
+    elegidas: list[BodyPhoto] = []
+    ronda = 0
+    while len(elegidas) < COACH_MAX_PHOTOS:
+        hubo = False
+        for lista in por_fecha.values():
+            if ronda < len(lista) and len(elegidas) < COACH_MAX_PHOTOS:
+                elegidas.append(lista[ronda])
+                hubo = True
+        if not hubo:
+            break
+        ronda += 1
+    elegidas.sort(key=lambda p: (p.taken_on, p.id))
+
+    salida = []
+    carpeta = photos_dir()
+    for p in elegidas:
+        try:
+            with open(os.path.join(carpeta, p.filename), 'rb') as fh:
+                raw = fh.read()
+            jpeg, _ = image_service.normalize_image(
+                raw, COACH_PHOTO_DIMENSION, current_app.config['IMAGE_JPEG_QUALITY'])
+        except (OSError, image_service.UnsupportedImageError):
+            current_app.logger.warning('Foto de progreso ilegible: %s', p.filename)
+            continue
+        salida.append((p, jpeg))
+    return salida
+
+
 def measurement_metrics_between(start: date, end: date) -> dict:
     """Inicio/fin/variación de cada contorno dentro de [start, end] (para el
     resumen semanal). Solo cuentan las tomas que traen cada medida."""
