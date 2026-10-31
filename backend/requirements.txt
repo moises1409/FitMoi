@@ -1,5 +1,6 @@
 flask==3.1.0
 flask-sqlalchemy==3.1.1
+sqlalchemy==2.0.55                    # fijado: 2.1 cambia el driver por defecto de postgresql:// a psycopg (v3) y rompe el arranque
 flask-cors==5.0.0
 flask-migrate==4.1.0
 psycopg2-binary==2.9.10
